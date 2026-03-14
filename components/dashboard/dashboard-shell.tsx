@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -37,6 +38,7 @@ import {
   HourglassMedium,
   ShieldWarning,
 } from "@phosphor-icons/react";
+import { UserMenu } from "@/components/auth/user-menu";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: ChartBar },
@@ -85,6 +87,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
+        <SidebarFooter>
+          <UserMenu />
+        </SidebarFooter>
       </Sidebar>
 
       <SidebarInset>
@@ -156,4 +161,3 @@ function buildBreadcrumbs(pathname: string) {
   }
   return crumbs;
 }
-
