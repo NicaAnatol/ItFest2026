@@ -10,7 +10,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// ─── Presentation prompt (phase 2 — OpenAI) ───
+// ── Presentation prompt (phase 2 — OpenAI) ──
 
 const PRESENTATION_PROMPT = `You are MedGraph AI, a senior clinical intelligence assistant embedded in a hospital decision-support platform.
 
