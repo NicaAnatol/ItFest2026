@@ -1,7 +1,8 @@
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google"
-
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
+import { TooltipProvider } from "@/components/ui/tooltip"
+import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components"
 import { cn } from "@/lib/utils";
 
 const fontSans = Geist({
@@ -10,6 +11,11 @@ const fontSans = Geist({
 })
 
 const jetbrainsMono = JetBrains_Mono({subsets:['latin'],variable:'--font-mono'})
+
+export const metadata = {
+  title: "MedGraph AI — Hospital Intelligence Platform",
+  description: "AI-powered predictive analysis and hospital optimization system",
+}
 
 export default function RootLayout({
   children,
@@ -20,10 +26,16 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn("antialiased", fontSans.variable, "font-mono", jetbrainsMono.variable)}
+      className={cn("h-full overflow-hidden antialiased", fontSans.variable, "font-mono", jetbrainsMono.variable)}
     >
-      <body>
-        <ThemeProvider>{children}</ThemeProvider>
+      <body suppressHydrationWarning className="h-full overflow-hidden">
+        <ThemeProvider>
+          <AuthKitProvider>
+            <TooltipProvider delayDuration={300}>
+              {children}
+            </TooltipProvider>
+          </AuthKitProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

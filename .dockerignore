@@ -1,0 +1,39 @@
+# dependencies
+node_modules
+.pnp
+.pnp.*
+
+# build output
+.next
+out
+build
+
+# env / secrets
+.env*.local
+.env
+
+# version control
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# CI / docs
+.github
+*.md
+doc.md
+AGENTS.md
+TASKS_PATIENT_GRAPH.md
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+
+# misc
+.DS_Store
+coverage
+generated
+
