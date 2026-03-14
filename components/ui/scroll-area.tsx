@@ -8,16 +8,12 @@ import { cn } from "@/lib/utils"
 function ScrollArea({
   className,
   children,
-  orientation = "both",
   ...props
-}: React.ComponentProps<typeof ScrollAreaPrimitive.Root> & {
-  /** Which scrollbar(s) to render. Defaults to "both". */
-  orientation?: "vertical" | "horizontal" | "both"
-}) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative overflow-hidden", className)}
+      className={cn("relative", className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
@@ -26,12 +22,7 @@ function ScrollArea({
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
-      {(orientation === "vertical" || orientation === "both") && (
-        <ScrollBar orientation="vertical" />
-      )}
-      {(orientation === "horizontal" || orientation === "both") && (
-        <ScrollBar orientation="horizontal" />
-      )}
+      <ScrollBar />
       <ScrollAreaPrimitive.Corner />
     </ScrollAreaPrimitive.Root>
   )

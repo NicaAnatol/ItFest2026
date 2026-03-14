@@ -2,7 +2,8 @@
  * Prisma Client singleton — lazy-initialized after instrumentation resolves
  * MongoDB hostnames to IPv4 addresses.
  *
- * Prisma manages schema (db push, indexes) AND runtime queries.
+ * Prisma manages auth only (Organization, Medic).
+ * Patient graph data lives in Neo4j — see lib/db/neo4j-patients.ts.
  */
 import { PrismaClient } from "@prisma/client";
 

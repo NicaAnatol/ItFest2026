@@ -30,7 +30,7 @@ export function usePatientData() {
     let cancelled = false;
     setLoading(true);
 
-    fetch("/data/patient-flows.json")
+    fetch("/api/patients")
       .then((res) => {
         if (!res.ok) throw new Error("Failed to load data");
         return res.json();

@@ -1,8 +1,8 @@
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google"
-
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components"
 import { cn } from "@/lib/utils";
 
 const fontSans = Geist({
@@ -30,9 +30,11 @@ export default function RootLayout({
     >
       <body suppressHydrationWarning className="h-full overflow-hidden">
         <ThemeProvider>
-          <TooltipProvider delayDuration={300}>
-            {children}
-          </TooltipProvider>
+          <AuthKitProvider>
+            <TooltipProvider delayDuration={300}>
+              {children}
+            </TooltipProvider>
+          </AuthKitProvider>
         </ThemeProvider>
       </body>
     </html>

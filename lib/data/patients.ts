@@ -12,7 +12,7 @@ let _cache: PatientFlowsData | null = null;
 async function loadData(): Promise<PatientFlowsData> {
   if (_cache) return _cache;
 
-  const res = await fetch("/data/patient-flows.json");
+  const res = await fetch("/api/patients");
   if (!res.ok) throw new Error("Failed to load patient data");
   const data: PatientFlowsData = await res.json();
   _cache = data;
@@ -66,4 +66,3 @@ export async function getMetadata() {
   const data = await loadData();
   return data.metadata;
 }
-

@@ -11,6 +11,8 @@ import type { Execution } from "./execution";
 export interface PatientGraph {
   patient_id: string;
   patient_name: string;
+  /** ID of the medic who owns this patient record */
+  medicId?: string;
   admission: Admission;
   discharge: Discharge;
   final_outcome: FinalOutcome;

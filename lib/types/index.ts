@@ -6,4 +6,4 @@ export type * from "./historical";
 export type * from "./logistics";
 export type * from "./execution";
 export type * from "./cross-case";
-
+export type * from "./medic";

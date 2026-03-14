@@ -1,44 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
-import { readFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { getCurrentMedic } from "@/lib/auth/get-current-medic";
+import { getAllPatients, upsertPatient } from "@/lib/db/patients";
 
-function getJsonPath() {
-  return join(process.cwd(), "public", "data", "patient-flows.json");
+/** GET — list all patients for the authenticated medic */
+export async function GET() {
+  try {
+    const medic = await getCurrentMedic();
+    const patients = await getAllPatients(medic._id);
+
+    // Build lightweight metadata on-the-fly
+    const healed = patients.filter((p) => p.final_outcome.status === "HEALED").length;
+    const complicated = patients.filter(
+      (p) => p.final_outcome.status === "HEALED_WITH_COMPLICATIONS",
+    ).length;
+    const deceased = patients.filter((p) => p.final_outcome.status === "DECEASED").length;
+
+    const metadata = {
+      description: "MedGraph AI patient flows (MongoDB)",
+      version: "3.0.0",
+      schema: "patient-decision-graph",
+      generated_at: new Date().toISOString(),
+      total_patients: patients.length,
+      statistics: {
+        total_patients: patients.length,
+        outcomes: { healed, healed_with_complications: complicated, deceased },
+        diagnoses: {} as Record<string, number>,
+        avg_los_days: 0,
+        avg_nodes_per_patient: 0,
+        total_cost_eur: 0,
+        avg_cost_per_patient_eur: 0,
+        total_complications: 0,
+        generated_at: new Date().toISOString(),
+      },
+    };
+
+    // Compute statistics
+    if (patients.length > 0) {
+      let totalLos = 0;
+      let totalNodes = 0;
+      let totalCost = 0;
+      let totalComplications = 0;
+
+      for (const p of patients) {
+        totalLos += p.discharge.duration_days;
+        totalNodes += p.nodes.length;
+        totalCost += p.flow_analytics?.cost_analysis?.total_cost_eur ?? 0;
+        totalComplications += p.final_outcome.final_complications?.length ?? 0;
+
+        const diag = p.nodes[0]?.patient_state?.diagnosis?.primary?.name;
+        if (diag) {
+          metadata.statistics.diagnoses[diag] =
+            (metadata.statistics.diagnoses[diag] ?? 0) + 1;
+        }
+      }
+
+      metadata.statistics.avg_los_days = totalLos / patients.length;
+      metadata.statistics.avg_nodes_per_patient = totalNodes / patients.length;
+      metadata.statistics.total_cost_eur = totalCost;
+      metadata.statistics.avg_cost_per_patient_eur = totalCost / patients.length;
+      metadata.statistics.total_complications = totalComplications;
+    }
+
+    return NextResponse.json({ metadata, patients });
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
-function readData() {
-  const raw = readFileSync(getJsonPath(), "utf-8");
-  return JSON.parse(raw);
-}
-
-function writeData(data: unknown) {
-  writeFileSync(getJsonPath(), JSON.stringify(data, null, 2), "utf-8");
-}
-
-/** POST — add a new patient to patient-flows.json */
+/** POST — add/update a patient for the authenticated medic */
 export async function POST(req: NextRequest) {
   try {
+    const medic = await getCurrentMedic();
     const patient = await req.json();
+
     if (!patient?.patient_id) {
       return NextResponse.json({ error: "Missing patient_id" }, { status: 400 });
     }
 
-    const data = readData();
-    // Check for duplicate
-    const existing = data.patients.findIndex(
-      (p: { patient_id: string }) => p.patient_id === patient.patient_id,
-    );
-    if (existing === -1) {
-      data.patients.push(patient);
-    } else {
-      data.patients[existing] = patient; // overwrite
-    }
-
-    // Update metadata counts
-    data.metadata.total_patients = data.patients.length;
-    data.metadata.statistics.total_patients = data.patients.length;
-
-    writeData(data);
+    await upsertPatient(medic._id, patient);
 
     return NextResponse.json({ ok: true, patient_id: patient.patient_id });
   } catch (err: unknown) {
@@ -46,4 +86,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }
-
