@@ -31,6 +31,7 @@ pnpm-debug.log*
 # env files (never commit secrets)
 .env
 .env*.local
+.aws/setup-aws-secrets.sh
 
 # prisma
 /generated/
