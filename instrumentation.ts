@@ -5,6 +5,11 @@
  * is half-configured but has no route).
  */
 export async function register() {
+  // Only run on Node.js runtime, not Edge
+  if (process.env.NEXT_RUNTIME === "edge") {
+    return;
+  }
+
   // ── Force IPv4-first globally ────────────────────────────────────────
   // Must happen before any network call (Prisma, fetch, etc.).
   const dns = await import("node:dns");

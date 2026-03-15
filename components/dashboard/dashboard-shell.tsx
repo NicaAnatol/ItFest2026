@@ -37,6 +37,7 @@ import {
   UserPlus,
   HourglassMedium,
   ShieldWarning,
+  Hospital,
 } from "@phosphor-icons/react";
 import { UserMenu } from "@/components/auth/user-menu";
 
@@ -46,6 +47,7 @@ const navItems = [
   { href: "/dashboard/alerts", label: "Alert Center", icon: ShieldWarning },
   { href: "/dashboard/add-patient", label: "Add Patient", icon: UserPlus },
   { href: "/dashboard/ongoing", label: "Ongoing", icon: HourglassMedium },
+  { href: "/dashboard/simulation", label: "Simulation", icon: Hospital },
 ];
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
@@ -158,6 +160,8 @@ function buildBreadcrumbs(pathname: string) {
     crumbs.push({ href: "/dashboard/add-patient", label: "Add Patient" });
   } else if (pathname.startsWith("/dashboard/ongoing")) {
     crumbs.push({ href: "/dashboard/ongoing", label: "Ongoing Patients" });
+  } else if (pathname.startsWith("/dashboard/simulation")) {
+    crumbs.push({ href: "/dashboard/simulation", label: "Hospital Simulation" });
   }
   return crumbs;
 }
