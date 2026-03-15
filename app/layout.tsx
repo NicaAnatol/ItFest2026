@@ -13,7 +13,7 @@ const fontSans = Geist({
 const jetbrainsMono = JetBrains_Mono({subsets:['latin'],variable:'--font-mono'})
 
 export const metadata = {
-  title: "MedGraph AI — Hospital Intelligence Platform",
+  title: "MedGraph AI - Hospital Intelligence Platform",
   description: "AI-powered predictive analysis and hospital optimization system",
 }
 
