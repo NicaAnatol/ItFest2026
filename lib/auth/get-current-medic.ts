@@ -20,4 +20,3 @@ export async function getCurrentMedic(): Promise<Medic> {
 
   return medic;
 }
-

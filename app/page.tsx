@@ -1,6 +1,6 @@
 import { withAuth, getSignInUrl, getSignUpUrl } from "@workos-inc/authkit-nextjs";
 import { redirect } from "next/navigation";
-import { SignInPage } from "@/components/auth/sign-in-page";
+import { LandingPage } from "@/components/landing/landing-page";
 
 export default async function Page() {
   const { user } = await withAuth();
@@ -13,5 +13,5 @@ export default async function Page() {
   const signInUrl = await getSignInUrl();
   const signUpUrl = await getSignUpUrl();
 
-  return <SignInPage signInUrl={signInUrl} signUpUrl={signUpUrl} />;
+  return <LandingPage signInUrl={signInUrl} signUpUrl={signUpUrl} />;
 }

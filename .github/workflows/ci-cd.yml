@@ -16,6 +16,8 @@
 #   ECS_SERVICE                — medgraph-ai-service-is5u7ylu
 #   ECS_CONTAINER_NAME         — medgraph-ai  (must match .aws/task-definition.json)
 #   TARGET_GROUP_ARN           — ALB target group that routes traffic to the service
+#   ALB_HTTPS_LISTENER_ARN     — HTTPS:443 listener on vulniq-alb
+#   APP_DOMAIN                 — medgraph.vulniq.org
 #
 # Required GitHub Variables (non-secret):
 #   (none — project key & org are in sonar-project.properties)
@@ -45,6 +47,8 @@ env:
   ECS_SERVICE: medgraph-ai-service-is5u7ylu
   ECS_CONTAINER_NAME: medgraph-ai
   TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:us-east-1:650080740856:targetgroup/medgraph-ai-tg/2ed7e3e805c7f4c8
+  ALB_HTTPS_LISTENER_ARN: arn:aws:elasticloadbalancing:us-east-1:650080740856:listener/app/vulniq-alb/5d4cf4111418cfcc/ec1e95794b7ac1e3
+  APP_DOMAIN: medgraph.vulniq.org
 
 # ── Cancel in-progress runs on the same branch ─────────────────────────────
 concurrency:
@@ -307,6 +311,91 @@ jobs:
           echo "arn=${TASK_DEF_ARN}" >> "$GITHUB_OUTPUT"
           echo "Registered task definition: ${TASK_DEF_ARN}"
 
+      - name: Ensure TLS certificate for ${{ env.APP_DOMAIN }}
+        timeout-minutes: 10
+        run: |
+          DOMAIN="${{ env.APP_DOMAIN }}"
+          LISTENER_ARN="${{ env.ALB_HTTPS_LISTENER_ARN }}"
+
+          # ── 1. Check if a certificate already exists ──────────────────────
+          CERT_ARN=$(aws acm list-certificates \
+            --certificate-statuses ISSUED \
+            --query "CertificateSummaryList[?DomainName=='${DOMAIN}'].CertificateArn | [0]" \
+            --output text)
+
+          if [ "$CERT_ARN" != "None" ] && [ -n "$CERT_ARN" ]; then
+            echo "Certificate already exists: ${CERT_ARN}"
+          else
+            echo "No certificate found for ${DOMAIN} — requesting one…"
+
+            # ── 2. Request a new certificate ────────────────────────────────
+            CERT_ARN=$(aws acm request-certificate \
+              --domain-name "$DOMAIN" \
+              --validation-method DNS \
+              --query 'CertificateArn' \
+              --output text)
+            echo "Requested certificate: ${CERT_ARN}"
+
+            # Wait for AWS to generate validation records
+            sleep 10
+
+            # ── 3. Create DNS validation CNAME in Route 53 ─────────────────
+            VALIDATION=$(aws acm describe-certificate \
+              --certificate-arn "$CERT_ARN" \
+              --query 'Certificate.DomainValidationOptions[0].ResourceRecord' \
+              --output json)
+
+            CNAME_NAME=$(echo "$VALIDATION" | jq -r '.Name')
+            CNAME_VALUE=$(echo "$VALIDATION" | jq -r '.Value')
+            echo "Validation CNAME: ${CNAME_NAME} → ${CNAME_VALUE}"
+
+            ZONE_ID=$(aws route53 list-hosted-zones-by-name \
+              --dns-name "vulniq.org" \
+              --query 'HostedZones[0].Id' \
+              --output text | sed 's|/hostedzone/||')
+
+            aws route53 change-resource-record-sets \
+              --hosted-zone-id "$ZONE_ID" \
+              --change-batch "{
+                \"Changes\": [{
+                  \"Action\": \"UPSERT\",
+                  \"ResourceRecordSet\": {
+                    \"Name\": \"${CNAME_NAME}\",
+                    \"Type\": \"CNAME\",
+                    \"TTL\": 300,
+                    \"ResourceRecords\": [{\"Value\": \"${CNAME_VALUE}\"}]
+                  }
+                }]
+              }"
+            echo "DNS validation record created in Route 53"
+
+            # ── 4. Wait for certificate to be issued ───────────────────────
+            echo "Waiting for certificate validation…"
+            aws acm wait certificate-validated \
+              --certificate-arn "$CERT_ARN"
+            echo "Certificate validated ✅"
+          fi
+
+          # ── 5. Attach certificate to ALB HTTPS listener ─────────────────
+          aws elbv2 add-listener-certificates \
+            --listener-arn "$LISTENER_ARN" \
+            --certificates CertificateArn="$CERT_ARN" 2>/dev/null || true
+          echo "Certificate ${CERT_ARN} attached to HTTPS listener ✅"
+
+      - name: Configure target group health check
+        run: |
+          aws elbv2 modify-target-group \
+            --target-group-arn "${{ env.TARGET_GROUP_ARN }}" \
+            --health-check-path "/api/health" \
+            --health-check-interval-seconds 30 \
+            --health-check-timeout-seconds 10 \
+            --healthy-threshold-count 2 \
+            --unhealthy-threshold-count 3 \
+            --matcher HttpCode=200 \
+            --query 'TargetGroups[0].{HealthCheckPath:HealthCheckPath,Matcher:Matcher}' \
+            --output table
+          echo "Target group health check configured ✅"
+
       - name: Deploy to Amazon ECS
         run: |
           # ── Borrow network config from the working vulniq service ────────
@@ -409,4 +498,3 @@ jobs:
           echo "  3. App crash: check the CloudWatch logs above"
           echo "  4. Network: task can't reach internet (needs NAT gateway)"
           echo "============================================"
-

@@ -63,4 +63,3 @@ export function SignInPage({ signInUrl, signUpUrl }: SignInPageProps) {
     </div>
   );
 }
-
