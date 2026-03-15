@@ -5,11 +5,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
   formatActionName,
-  formatRiskPercentage,
 } from "@/lib/utils/format";
 import {
   User,
-  Clock,
   Lightbulb,
   ListChecks,
   Pill,

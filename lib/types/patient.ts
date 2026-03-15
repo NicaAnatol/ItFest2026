@@ -1,6 +1,6 @@
 // Core patient graph types
 
-import type { PatientState, Vitals, Complication } from "./patient-state";
+import type { PatientState } from "./patient-state";
 import type { Decision, RiskAssessment } from "./decision";
 import type { HistoricalAnalysis } from "./historical";
 import type { Logistics } from "./logistics";

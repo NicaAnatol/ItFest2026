@@ -40,7 +40,6 @@ import {
   Trash,
   CircleNotch,
   FlagBanner,
-  ArrowRight,
   Pencil,
   HourglassMedium,
 } from "@phosphor-icons/react";

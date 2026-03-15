@@ -23,12 +23,10 @@ import {
   formatCurrency,
   formatDurationDays,
   formatPercentage,
-  getOutcomeLabel,
 } from "@/lib/utils/format";
 import type { PatientNode } from "@/lib/types/patient";
 import {
   User,
-  Calendar,
   Clock,
   CurrencyEur,
   GitBranch,
@@ -37,10 +35,7 @@ import {
   FirstAid,
   ArrowLeft,
   Warning,
-  CheckCircle,
   Skull,
-  House,
-  GitFork,
   Trash,
   CircleNotch,
 } from "@phosphor-icons/react";
@@ -50,8 +45,6 @@ import { AiExplainButton } from "@/components/ai/ai-explain-button";
 import { PatientChat } from "@/components/ai/patient-chat";
 import { PathwayOptimizer } from "@/components/ai/pathway-optimizer";
 import {
-  buildNodeExplainContext,
-  buildNodeExplainQuestion,
   buildComplicationExplainContext,
   buildComplicationExplainQuestion,
 } from "@/lib/ai/explain-context";
@@ -167,7 +160,7 @@ export default function PatientDetailPage() {
 
       {/* Main Tabs */}
       <Tabs defaultValue="graph">
-        <ScrollArea orientation="horizontal" className="w-full">
+        <ScrollArea className="w-full">
           <TabsList className="w-max">
             <TabsTrigger value="graph">Graph View</TabsTrigger>
             <TabsTrigger value="timeline">Timeline</TabsTrigger>

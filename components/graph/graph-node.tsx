@@ -1,7 +1,6 @@
 "use client";
 
 import type { PatientNode } from "@/lib/types/patient";
-import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   getActionCategoryColor,

@@ -90,7 +90,7 @@ export function RiskHeatmap({ patients }: RiskHeatmapProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="px-4 pb-3 pt-0">
-        <ScrollArea className="h-44" orientation="vertical">
+        <ScrollArea className="h-44">
           <div className="grid grid-cols-8 sm:grid-cols-10 md:grid-cols-14 gap-1.5 pr-3">
             {riskSummaries.map((rs) => (
               <HeatmapCell key={rs.patient.patient_id} data={rs} />

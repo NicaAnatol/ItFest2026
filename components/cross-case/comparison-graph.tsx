@@ -12,16 +12,13 @@ import {
 } from "@/components/ui/tooltip";
 import {
   formatRiskPercentage,
-  getOutcomeLabel,
   getOutcomeDotColor,
 } from "@/lib/utils/format";
 import {
-  GitFork,
   CheckCircle,
   XCircle,
   Flag,
   Diamond,
-  Users,
   Sparkle,
 } from "@phosphor-icons/react";
 
@@ -137,7 +134,7 @@ function getColumnState(
 export function ComparisonGraph({
   alignedPairs,
   divergences,
-  comparedPatientIds,
+  comparedPatientIds: _comparedPatientIds,
   activeStepIndex = -1,
   onStageSelect,
 }: ComparisonGraphProps) {
@@ -259,7 +256,7 @@ export function ComparisonGraph({
         </div>
       </div>
 
-      <ScrollArea className="w-full" orientation="horizontal">
+      <ScrollArea className="w-full">
         <div
           className="min-w-fit pb-4"
           style={{ minWidth: visibleStages.length * stageWidth + 160 }}

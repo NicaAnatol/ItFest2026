@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useRef } from "react";
 import type { PatientNode, PatientEdge } from "@/lib/types/patient";
 import { GraphNode } from "./graph-node";
 import { GraphEdge } from "./graph-edge";
@@ -63,7 +62,7 @@ export function PatientGraphView({
       </div>
 
       {/* Graph */}
-      <ScrollArea className="w-full" orientation="horizontal">
+      <ScrollArea className="w-full">
         <div className="flex items-center gap-0 pb-4 pt-2 px-2" style={{ minWidth: sorted.length * 100 }}>
           {sorted.map((node, i) => {
             const nextNode = sorted[i + 1];

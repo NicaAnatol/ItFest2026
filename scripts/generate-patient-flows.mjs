@@ -178,9 +178,6 @@ const ADMISSION_METHODS = [
   { method: "police_escort", weight: 5 },
 ];
 
-const TRIAGE_CODES = ["RED", "ORANGE", "YELLOW", "GREEN"];
-const SHIFTS = ["day_shift", "evening_shift", "night_shift"];
-const TIMES_OF_DAY = ["morning", "afternoon", "evening", "night"];
 const DISCHARGE_DESTINATIONS = ["home", "rehabilitation_facility", "nursing_home", "home_with_home_care", "transferred_to_other_hospital"];
 
 // ─── Helper functions to build nodes ───
@@ -530,7 +527,7 @@ function generatePatientFlow(patientIndex) {
     const compPct = round2(100 - healedPct - diedPct);
 
     // Generate flags
-    const flags = generateFlags(nodeIdx, diagnosisTemplate, severity, age, complications);
+    const flags = generateFlags(nodeIdx, diagnosisTemplate, severity, age);
 
     // Cost for this node
     const personnelCost = randInt(20, 200);
@@ -586,7 +583,7 @@ function generatePatientFlow(patientIndex) {
         },
         vitals,
         lab_results: labs,
-        medications_active: generateActiveMedications(diagnosisTemplate, nodeIdx, actionCategory),
+        medications_active: generateActiveMedications(diagnosisTemplate, nodeIdx),
         complications_active: complications.filter(c => c.current_status === "active").map(c => ({
           complication_id: c.complication_id,
           type: c.type,
@@ -621,7 +618,7 @@ function generatePatientFlow(patientIndex) {
             current_patient_load: randInt(2, 5)
           }
         },
-        equipment_in_use: generateEquipmentList(currentDept, diagnosisTemplate),
+        equipment_in_use: generateEquipmentList(currentDept),
         department_state: DEPARTMENTS[currentDept].beds > 0 ? generateDepartmentState(DEPARTMENTS[currentDept]) : undefined
       },
 
@@ -764,7 +761,7 @@ function generatePatientFlow(patientIndex) {
   const totalCost = nodes.reduce((s, n) => s + n.execution.total_cost.total, 0);
 
   // Build department utilization from the flow
-  const deptUtilization = buildDeptUtilization(nodes, departmentFlow);
+  const deptUtilization = buildDeptUtilization(nodes);
 
   // Build the patient graph
   const patientGraph = {
@@ -932,7 +929,7 @@ function generateDecision(actionCategory, diagnosis, doctor, nodeIdx, totalNodes
       supporting_evidence: generateSupportingEvidence(diagnosis, severity),
       guidelines_followed: generateGuidelines(diagnosis)
     },
-    alternatives_considered: rng() > 0.4 ? generateAlternatives(diagnosis, action) : [],
+    alternatives_considered: rng() > 0.4 ? generateAlternatives() : [],
     orders: generateOrders(actionCategory, diagnosis, action),
     expected_outcome: {
       primary: `${actionCategory}_completion_and_stabilization`,
@@ -976,7 +973,7 @@ function generateGuidelines(diagnosis) {
   return (guidelines[diagnosis.category] || ["Standard institutional protocols"]).slice(0, randInt(1, 2));
 }
 
-function generateAlternatives(diagnosis, currentAction) {
+function generateAlternatives() {
   return [{
     option: `alternative_${pick(["conservative_management", "surgical_approach", "different_medication", "watchful_waiting", "less_invasive_option"])}`,
     why_not_chosen: "Current approach has better evidence and risk-benefit profile for this patient",
@@ -1070,7 +1067,7 @@ function generateDifferentialDiagnosis(diagnosis) {
   return diffs;
 }
 
-function generateActiveMedications(diagnosis, nodeIdx, actionCategory) {
+function generateActiveMedications(diagnosis, nodeIdx) {
   if (nodeIdx < 2) return [];
   const meds = [];
   if (rng() > 0.3) meds.push({ medication: "oxygen", dose: pick(["2L/min", "4L/min", "6L/min"]), route: "nasal_cannula", status: "active" });
@@ -1088,7 +1085,7 @@ function generateActiveMedications(diagnosis, nodeIdx, actionCategory) {
   return meds;
 }
 
-function generateEquipmentList(dept, diagnosis) {
+function generateEquipmentList(dept) {
   const equipment = [];
   if (dept !== "ambulance") {
     equipment.push({ equipment_id: `MONITOR_${dept.toUpperCase()}_${randInt(1, 50)}`, type: "cardiac_monitor" });
@@ -1160,7 +1157,7 @@ function generateOverlappingDecisions() {
   }];
 }
 
-function generateFlags(nodeIdx, diagnosis, severity, age, complications) {
+function generateFlags(nodeIdx, diagnosis, severity, age) {
   const flags = [];
 
   if (nodeIdx > 2 && rng() > 0.5) {
@@ -1168,7 +1165,7 @@ function generateFlags(nodeIdx, diagnosis, severity, age, complications) {
       flag_id: `FLAG_${uuid4().slice(0, 8)}`,
       type: pick(["HIGH_RISK_COMPLICATION", "TIMING_CRITICAL", "CONSIDER_WORKUP", "DECISION_OVERLAP_RISK", "DOSAGE_CHECK", "INTERACTION_WARNING"]),
       severity: pick(["INFO", "WARNING", "CRITICAL"]),
-      message: generateFlagMessage(diagnosis, severity, age),
+      message: generateFlagMessage(diagnosis),
       evidence: {
         similar_cases: randInt(50, 500),
         complication_rate: round2(0.02 + rng() * 0.15),
@@ -1219,7 +1216,7 @@ function generateFlags(nodeIdx, diagnosis, severity, age, complications) {
   return flags;
 }
 
-function generateFlagMessage(diagnosis, severity, age) {
+function generateFlagMessage(diagnosis) {
   const messages = [
     `Elevated complication risk detected for ${diagnosis.name.replace(/_/g, ' ')} treatment pathway`,
     `Historical data shows ${randInt(5, 20)}% adverse event rate in similar presentations`,
@@ -1249,7 +1246,7 @@ function generateChiefComplaint(diagnosis) {
   return pick(complaints[diagnosis.category] || ["acute_complaint"]);
 }
 
-function buildDeptUtilization(nodes, departmentFlow) {
+function buildDeptUtilization(nodes) {
   const deptMap = {};
   nodes.forEach(node => {
     const deptId = node.logistics.location.department.id;
@@ -1343,7 +1340,7 @@ const output = {
 const outputPath = join(__dirname, '..', 'public', 'data', 'patient-flows.json');
 // Ensure directory exists
 import { mkdirSync } from 'fs';
-try { mkdirSync(join(__dirname, '..', 'public', 'data'), { recursive: true }); } catch (e) {}
+try { mkdirSync(join(__dirname, '..', 'public', 'data'), { recursive: true }); } catch {}
 
 writeFileSync(outputPath, JSON.stringify(output, null, 2), 'utf8');
 

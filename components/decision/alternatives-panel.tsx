@@ -3,7 +3,7 @@
 import type { Alternative } from "@/lib/types/decision";
 import { Badge } from "@/components/ui/badge";
 import { formatActionName, formatRiskPercentage } from "@/lib/utils/format";
-import { ArrowRight, Check, X } from "@phosphor-icons/react";
+import { Check, X } from "@phosphor-icons/react";
 
 interface AlternativesPanelProps {
   alternatives: Alternative[];

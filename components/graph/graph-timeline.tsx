@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AiExplainButton } from "@/components/ai/ai-explain-button";
 import { buildNodeExplainContext, buildNodeExplainQuestion } from "@/lib/ai/explain-context";
-import { Flag, WarningCircle, CheckCircle, XCircle } from "@phosphor-icons/react";
+import { Flag, CheckCircle, XCircle } from "@phosphor-icons/react";
 
 interface GraphTimelineProps {
   nodes: PatientNode[];
@@ -25,7 +25,7 @@ export function GraphTimeline({ nodes, selectedNodeId, onNodeClick }: GraphTimel
   const sorted = [...nodes].sort((a, b) => a.sequence - b.sequence);
 
   return (
-    <ScrollArea className="max-h-[600px]" orientation="vertical">
+    <ScrollArea className="max-h-[600px]">
       <div className="relative space-y-0">
         {/* Vertical line */}
         <div className="absolute left-[72px] top-0 bottom-0 w-px bg-border" />

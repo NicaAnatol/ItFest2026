@@ -12,7 +12,6 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowClockwise,
-  X,
   Diamond,
   Play,
   Stop,

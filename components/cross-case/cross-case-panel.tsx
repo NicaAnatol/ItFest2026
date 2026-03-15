@@ -5,7 +5,6 @@ import type { PatientGraph } from "@/lib/types/patient";
 import { useCrossCaseAnalysis } from "@/hooks/use-cross-case-analysis";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { PatientMatchList } from "./patient-match-list";
