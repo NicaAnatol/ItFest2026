@@ -80,9 +80,11 @@ export function AiExplainButton({
         accumulated += decoder.decode(value, { stream: true });
         setText(accumulated);
       }
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") {
         setError(err.message ?? "Something went wrong");
+      } else if (!(err instanceof DOMException)) {
+        setError("Something went wrong");
       }
     } finally {
       setLoading(false);
