@@ -369,18 +369,44 @@ jobs:
               }"
             echo "DNS validation record created in Route 53"
 
-            # ── 4. Wait for certificate to be issued ───────────────────────
-            echo "Waiting for certificate validation…"
-            aws acm wait certificate-validated \
-              --certificate-arn "$CERT_ARN"
-            echo "Certificate validated ✅"
+            # ── 4. Wait for certificate (non-blocking — up to 3 min) ──────
+            echo "Waiting for certificate validation (up to 3 min)…"
+            CERT_ISSUED=false
+            for i in $(seq 1 18); do
+              STATUS=$(aws acm describe-certificate \
+                --certificate-arn "$CERT_ARN" \
+                --query 'Certificate.Status' \
+                --output text)
+              echo "  [$i/18] Status: $STATUS"
+              if [ "$STATUS" = "ISSUED" ]; then
+                CERT_ISSUED=true
+                break
+              fi
+              sleep 10
+            done
+
+            if [ "$CERT_ISSUED" = "true" ]; then
+              echo "Certificate validated ✅"
+            else
+              echo "::warning::Certificate still pending — it will auto-validate once DNS propagates. Re-run this pipeline or the next push will attach it."
+            fi
           fi
 
           # ── 5. Attach certificate to ALB HTTPS listener ─────────────────
-          aws elbv2 add-listener-certificates \
-            --listener-arn "$LISTENER_ARN" \
-            --certificates CertificateArn="$CERT_ARN" 2>/dev/null || true
-          echo "Certificate ${CERT_ARN} attached to HTTPS listener ✅"
+          if [ "$CERT_ARN" != "None" ] && [ -n "$CERT_ARN" ]; then
+            STATUS=$(aws acm describe-certificate \
+              --certificate-arn "$CERT_ARN" \
+              --query 'Certificate.Status' \
+              --output text 2>/dev/null || echo "UNKNOWN")
+            if [ "$STATUS" = "ISSUED" ]; then
+              aws elbv2 add-listener-certificates \
+                --listener-arn "$LISTENER_ARN" \
+                --certificates CertificateArn="$CERT_ARN" 2>/dev/null || true
+              echo "Certificate ${CERT_ARN} attached to HTTPS listener ✅"
+            else
+              echo "::warning::Skipping listener attach — certificate status is ${STATUS}. Will attach on next deploy."
+            fi
+          fi
 
       - name: Configure target group health check
         run: |
