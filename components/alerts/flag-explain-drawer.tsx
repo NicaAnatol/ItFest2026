@@ -58,7 +58,6 @@ export function FlagExplainDrawer({ node, compact = false }: FlagExplainDrawerPr
   const hasCritical = flagCounts.critical > 0;
   const hasWarning = flagCounts.warning > 0;
 
-  if (flags.length === 0) return null;
 
   const fetchAiExplanation = useCallback(async () => {
     setAiText("");
@@ -113,6 +112,8 @@ export function FlagExplainDrawer({ node, compact = false }: FlagExplainDrawerPr
       setAiLoading(false);
     }
   }, [node]);
+
+  if (flags.length === 0) return null;
 
   const handleOpen = () => {
     setOpen(true);
