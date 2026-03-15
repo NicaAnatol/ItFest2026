@@ -52,16 +52,16 @@ export function usePatientData() {
     return () => { cancelled = true; };
   }, []);
 
+  // Initial load + re-fetch when cache is invalidated
+  // Data-fetching from external source — setState in effect is intentional
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     load();
-  }, [load]);
-
-  // Re-fetch when cache is invalidated
-  useEffect(() => {
     const listener = () => load();
     _listeners.add(listener);
     return () => { _listeners.delete(listener); };
   }, [load]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const deletePatient = useCallback(async (patientId: string) => {
     const res = await fetch(`/api/patients/${patientId}`, { method: "DELETE" });

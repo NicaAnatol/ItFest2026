@@ -143,10 +143,11 @@ export async function POST(req: NextRequest) {
         "Transfer-Encoding": "chunked",
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Explain API error:", error);
+    const message = error instanceof Error ? error.message : "Failed to generate explanation";
     return NextResponse.json(
-      { error: error.message ?? "Failed to generate explanation" },
+      { error: message },
       { status: 500 },
     );
   }

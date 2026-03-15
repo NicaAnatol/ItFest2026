@@ -53,14 +53,15 @@ export function CostBreakdownSummary({ breakdown }: CostBreakdownSummaryProps) {
     const ordered = CATEGORIES.map((cat) => {
       const value = breakdown[cat.key];
       const pct = total > 0 ? (value / total) * 100 : 0;
-      return { ...cat, value, pct };
+      const dashLength = (pct / 100) * circumference;
+      return { ...cat, value, pct, dashLength };
     });
-    let offset = 0;
-    return ordered.map((seg) => {
-      const dashLength = (seg.pct / 100) * circumference;
-      const dashOffset = -offset;
-      offset += dashLength;
-      return { ...seg, dashLength, dashOffset };
+    // Compute cumulative offsets from preceding dash lengths
+    return ordered.map((seg, i) => {
+      const dashOffset = -ordered
+        .slice(0, i)
+        .reduce((sum, s) => sum + s.dashLength, 0);
+      return { ...seg, dashOffset };
     });
   }, [breakdown, total, circumference]);
 

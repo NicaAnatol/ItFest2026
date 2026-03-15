@@ -106,7 +106,7 @@ jobs:
 
       # ── Trivy: filesystem vulnerability scan ──────────────────────────
       - name: Trivy — dependency & IaC scan
-        uses: aquasecurity/trivy-action@0.28.1
+        uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
@@ -173,7 +173,7 @@ jobs:
 
       # ── Trivy: scan the built image ────────────────────────────────────
       - name: Trivy — container image scan
-        uses: aquasecurity/trivy-action@0.28.1
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.SHA_TAG }}
           format: sarif

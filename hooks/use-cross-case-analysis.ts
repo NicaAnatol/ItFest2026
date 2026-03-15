@@ -62,13 +62,7 @@ export function useCrossCaseAnalysis(
     return findSimilarPatients(patient, patients, 10);
   }, [patient, patients]);
 
-  // Sync computed matches to state (to allow toggling selection)
-  useMemo(() => {
-    if (computedMatches.length > 0 && matchState.length === 0) {
-      setMatchState(computedMatches);
-    }
-  }, [computedMatches]);
-
+  // effectiveMatches: use user-toggled state if available, otherwise computed
   const effectiveMatches = matchState.length > 0 ? matchState : computedMatches;
 
   const toggleMatch = useCallback((patientId: string) => {
@@ -183,9 +177,12 @@ export function useCrossCaseAnalysis(
       }
 
       setAiLoading(false);
-    } catch (err: any) {
-      if (err.name !== "AbortError") {
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name !== "AbortError") {
         setAiError(err.message ?? "Failed to analyze");
+        setAiLoading(false);
+      } else if (!(err instanceof DOMException)) {
+        setAiError("Failed to analyze");
         setAiLoading(false);
       }
     }

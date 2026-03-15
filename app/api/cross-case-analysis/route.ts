@@ -170,10 +170,11 @@ export async function POST(req: NextRequest) {
         "Transfer-Encoding": "chunked",
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Cross-case analysis API error:", error);
+    const message = error instanceof Error ? error.message : "Failed to generate cross-case analysis";
     return NextResponse.json(
-      { error: error.message ?? "Failed to generate cross-case analysis" },
+      { error: message },
       { status: 500 },
     );
   }

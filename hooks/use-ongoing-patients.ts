@@ -33,11 +33,10 @@ function writeStore(patients: OngoingPatient[]) {
 // ─── Hook ───
 
 export function useOngoingPatients() {
-  const [patients, setPatients] = useState<OngoingPatient[]>([]);
+  const [patients, setPatients] = useState<OngoingPatient[]>(() => readStore());
 
-  // Initial load + subscribe to changes
+  // Subscribe to changes
   useEffect(() => {
-    setPatients(readStore());
 
     const refresh = () => setPatients(readStore());
     _listeners.add(refresh);

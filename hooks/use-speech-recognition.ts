@@ -54,6 +54,7 @@ export function useSpeechRecognition(
     recognition.onresult = (event: any) => {
       let final = "";
       let interim = "";
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       for (const result of Array.from(event.results) as any[]) {
         if (result.isFinal) {
           final += result[0].transcript;
@@ -81,7 +82,6 @@ export function useSpeechRecognition(
     return () => {
       recognition.abort();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSupported]);
 
   const start = useCallback(() => {
