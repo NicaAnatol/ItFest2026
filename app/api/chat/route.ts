@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/ai/openai-client";
 import {
   getMedGemmaChatAnalysis,
   isMedGemmaConfigured,
 } from "@/lib/ai/medgemma-client";
 import { MEDGEMMA_CHAT } from "@/lib/ai/medgemma-prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // ── Presentation prompt (phase 2 — OpenAI) ──
 
@@ -131,7 +128,7 @@ export async function POST(req: NextRequest) {
       openaiMessages = [{ role: "system", content: systemContent }, ...messages];
     }
 
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       stream: true,
       temperature: 0.3,

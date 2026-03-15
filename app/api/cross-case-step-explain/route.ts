@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/ai/openai-client";
 import {
   getMedGemmaAnalysis,
   isMedGemmaConfigured,
 } from "@/lib/ai/medgemma-client";
 import { MEDGEMMA_STEP_EXPLAIN } from "@/lib/ai/medgemma-prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // ─── Presentation prompt (phase 2 — OpenAI) ───
 
@@ -111,7 +108,7 @@ export async function POST(req: NextRequest) {
       userContent = `Explain what happened at this stage in the cross-case comparison:\n\n\`\`\`json\n${JSON.stringify(stageData, null, 2)}\n\`\`\`\n\nGive a clear, clinical explanation of this stage for each patient. Highlight divergences and patterns.`;
     }
 
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       stream: true,
       temperature: 0.3,
