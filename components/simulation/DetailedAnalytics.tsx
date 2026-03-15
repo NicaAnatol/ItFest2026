@@ -276,7 +276,7 @@ export default function DetailedAnalytics({
           <CardTitle className="text-lg flex items-center justify-between">
             <span>📊 Statistics {isCityMode ? 'City' : 'Complete'}</span>
             {selectedHospitalId === 'all' && isCityMode && (
-              <Badge className="bg-purple-600">All Hospitals</Badge>
+              <Badge className="bg-purple-600 dark:bg-purple-700">All Hospitals</Badge>
             )}
           </CardTitle>
         </CardHeader>
@@ -330,7 +330,7 @@ export default function DetailedAnalytics({
                     <div className="text-xs text-muted-foreground">Completed Transfers</div>
                     <div className="text-xl font-bold text-green-600">{stats.totalTransfers}</div>
                   </div>
-                  <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-300">
+                  <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-300 dark:border-red-700">
                     <div className="text-xs text-muted-foreground">Left System</div>
                     <div className="text-xl font-bold text-red-600">{stats.uniquePatientsLeftSystem}</div>
                     {stats.patientsCurrentlyLeaving > 0 && (
@@ -345,7 +345,7 @@ export default function DetailedAnalytics({
                   <div className="p-3 bg-black dark:bg-gray-900 border-2 border-red-600 rounded-lg">
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-bold text-red-500">💀 Deaths in Transfer:</span>
-                      <Badge className="bg-red-700 text-white text-lg">{stats.deathsInTransfer}</Badge>
+                      <Badge className="bg-red-700 dark:bg-red-800 text-white text-lg">{stats.deathsInTransfer}</Badge>
                     </div>
                   </div>
                 )}
@@ -415,13 +415,13 @@ export default function DetailedAnalytics({
             <div className="space-y-1">
               <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg">
                 <span className="text-xs">Busiest hour:</span>
-                <Badge className="bg-red-500">
+                <Badge className="bg-red-500 dark:bg-red-600">
                   {String(stats.busiestHour.hour).padStart(2, '0')}:00 ({stats.busiestHour.count} events)
                 </Badge>
               </div>
               <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                 <span className="text-xs">Quietest hour:</span>
-                <Badge className="bg-green-500">
+                <Badge className="bg-green-500 dark:bg-green-600">
                   {String(stats.quietestHour.hour).padStart(2, '0')}:00 ({stats.quietestHour.count} events)
                 </Badge>
               </div>

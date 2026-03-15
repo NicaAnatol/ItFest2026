@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit",
     "seed": "npx tsx scripts/seed-mongo.ts",
     "seed:neo4j": "npx tsx scripts/seed-neo4j.ts",
+    "seed:simulation": "npx tsx lib/simulation/data/migrateToMongo.ts",
     "db:push": "npx prisma@6 db push",
     "db:generate": "npx prisma@6 generate",
     "postinstall": "npx prisma@6 generate"
@@ -28,6 +29,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "dotenv": "^17.3.1",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.577.0",
     "mongodb": "^7.1.0",
     "neo4j-driver": "^6.0.1",

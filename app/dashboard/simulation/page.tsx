@@ -440,6 +440,9 @@ export default function SimulationPage() {
       // Generate patients from config
       const generatedPatients = generatePatientsFromConfig(config);
 
+      // NOTE: Removed MongoDB save to prevent server blocking with large datasets
+      console.log(`✅ Generated ${generatedPatients.length} patients for simulation`);
+
       // Convert department capacities to the format expected
       const capacities: { [deptId: string]: { capacity: number; processingTimeMinutes: number } } = {};
 
@@ -454,6 +457,280 @@ export default function SimulationPage() {
       await handleLoadStressTest(generatedPatients, capacities, config.startTime, config.endTime);
       setCurrentDay(config.simulationDay);
       setCurrentTime(config.startTime);
+    }
+  };
+
+  // Export current simulation data
+  const exportCurrentSimulationData = async () => {
+    if (!queueManagerRef.current || !precomputerRef.current) {
+      alert('⚠️ No simulation data available to export');
+      return;
+    }
+
+    try {
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+
+      // Get current time in minutes
+      const [currentH, currentM] = currentTime.split(':').map(Number);
+      const currentMinutes = currentH * 60 + currentM;
+
+      // Get start time
+      const [startH, startM] = simulationStartTime.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+
+      // Collect all events up to current time
+      const minuteByMinuteData: any[] = [];
+
+      // Iterate through each minute from start to current
+      for (let minute = startMinutes; minute <= currentMinutes; minute++) {
+        const state = precomputerRef.current.getStateAtTime(
+          `${Math.floor(minute / 60).toString().padStart(2, '0')}:${(minute % 60).toString().padStart(2, '0')}`
+        );
+
+        if (state) {
+          // Store minute-by-minute state
+          minuteByMinuteData.push({
+            time: state.time,
+            timeMinutes: minute,
+            stats: state.stats,
+            departmentOccupancies: Object.fromEntries(state.departmentOccupancies),
+            queueState: state.queueState
+          });
+        }
+      }
+
+      // Get all death records up to now
+      const deathRecords = queueManagerRef.current.getDeathRecords();
+
+      // Get patient journeys for patients who entered the system
+      const patientJourneys = patients
+        .filter(p => {
+          const firstVisit = p.visits[0];
+          if (!firstVisit) return false;
+          const [vh, vm] = firstVisit.startTime.split(':').map(Number);
+          return (vh * 60 + vm) <= currentMinutes;
+        })
+        .map(p => ({
+          patientId: p.id,
+          patientName: p.name,
+          condition: p.condition,
+          severity: p.severity,
+          patientType: p.patientType,
+          visits: p.visits.filter(v => {
+            const [vh, vm] = v.startTime.split(':').map(Number);
+            return (vh * 60 + vm) <= currentMinutes;
+          }),
+          currentStatus: deathRecords.some(d => d.patientId === p.id) ? 'died' : 'active'
+        }));
+
+      // Get global statistics
+      const globalStats = queueManagerRef.current.getGlobalStats();
+
+      // Get department states
+      const departmentStates = Object.fromEntries(
+        Array.from(currentBuilding.floors.flatMap(f => f.departments)).map(dept => {
+          const queueState = queueManagerRef.current?.getQueueState(dept.id);
+          return [dept.id, {
+            departmentName: dept.name,
+            departmentType: dept.type,
+            currentOccupancy: queueState?.currentOccupancy || 0,
+            capacity: queueState?.capacity || 0,
+            queueLength: queueState?.queue?.length || 0,
+            isBlocked: queueState?.isBlocked || false,
+            totalVisits: queueState?.totalVisits || 0,
+            totalDeaths: queueState?.totalDeaths || 0
+          }];
+        })
+      );
+
+      // 1. Summary JSON
+      const summaryData = {
+        exportedAt: new Date().toISOString(),
+        currentTime: currentTime,
+        currentDay: currentDay,
+        totalPatients: patientJourneys.length,
+        totalDeaths: deathRecords.length,
+        totalTransfers: completedTransfersRef.current.length,
+        minutesSimulated: currentMinutes - startMinutes,
+        globalStats: globalStats
+      };
+      zip.file('00-SUMMARY.json', JSON.stringify(summaryData, null, 2));
+
+      // 2. Current Snapshot CSV
+      let snapshotCsv = 'Metric,Value\n';
+      snapshotCsv += `Current Time,${currentTime}\n`;
+      snapshotCsv += `Total Patients Entered,${patientJourneys.length}\n`;
+      snapshotCsv += `Total Deaths,${deathRecords.length}\n`;
+      snapshotCsv += `Total Transfers,${completedTransfersRef.current.length}\n`;
+      snapshotCsv += `Total Occupied,${globalStats.totalOccupied}\n`;
+      snapshotCsv += `Total Capacity,${globalStats.totalCapacity}\n`;
+      snapshotCsv += `Total Queued,${globalStats.totalQueued}\n`;
+      snapshotCsv += `System Utilization,${globalStats.overallUtilization.toFixed(2)}%\n`;
+      zip.file('01-current-snapshot.csv', snapshotCsv);
+
+      // 3. Department States CSV
+      let deptCsv = 'Department ID,Department Name,Type,Occupancy,Capacity,Queue Length,Blocked,Total Visits,Total Deaths\n';
+      Object.entries(departmentStates).forEach(([id, dept]: [string, any]) => {
+        deptCsv += `${id},${dept.departmentName},${dept.departmentType},${dept.currentOccupancy},${dept.capacity},${dept.queueLength},${dept.isBlocked ? 'Yes' : 'No'},${dept.totalVisits},${dept.totalDeaths}\n`;
+      });
+      zip.file('02-department-states.csv', deptCsv);
+
+      // 4. Minute-by-Minute History CSV
+      let minuteCsv = 'Time,Time (Minutes),Patients Entered,Patients Exited,Active Patients\n';
+      minuteByMinuteData.forEach(m => {
+        minuteCsv += `${m.time},${m.timeMinutes},${m.stats.totalEntered},${m.stats.totalExited},${m.stats.totalEntered - m.stats.totalExited}\n`;
+      });
+      zip.file('03-minute-by-minute.csv', minuteCsv);
+
+      // 5. Minute-by-Minute Full Data JSON
+      zip.file('03-minute-by-minute-full.json', JSON.stringify(minuteByMinuteData, null, 2));
+
+      // 6. Death Records CSV
+      let deathCsv = 'Patient ID,Patient Name,Department,Time of Death (min),Cause,Mortality Risk,Waiting Time\n';
+      deathRecords.forEach(d => {
+        deathCsv += `${d.patientId},${d.patientName},${d.departmentId},${d.timeOfDeath},${d.causeOfDeath},${d.mortalityRisk}%,${d.waitingTime || 0}min\n`;
+      });
+      zip.file('04-death-records.csv', deathCsv);
+      zip.file('04-death-records.json', JSON.stringify(deathRecords, null, 2));
+
+      // 7. Patient Journeys CSV
+      let journeyCsv = 'Patient ID,Patient Name,Condition,Severity,Patient Type,Total Visits,Status\n';
+      patientJourneys.forEach(p => {
+        journeyCsv += `${p.patientId},${p.patientName},${p.condition},${p.severity},${p.patientType},${p.visits.length},${p.currentStatus}\n`;
+      });
+      zip.file('05-patient-journeys.csv', journeyCsv);
+      zip.file('05-patient-journeys-full.json', JSON.stringify(patientJourneys, null, 2));
+
+      // 8. Completed Transfers CSV (if any)
+      if (completedTransfersRef.current.length > 0) {
+        let transferCsv = 'Patient ID,Patient Name,From Hospital,To Hospital,Reason,Time\n';
+        completedTransfersRef.current.forEach(t => {
+          transferCsv += `${t.patientId},${t.patientName},${t.fromHospital},${t.toHospital},${t.reason},${t.time}\n`;
+        });
+        zip.file('06-transfers.csv', transferCsv);
+        zip.file('06-transfers.json', JSON.stringify(completedTransfersRef.current, null, 2));
+      }
+
+      // 9. City Data (if city mode)
+      if (cityHospitals.length > 0) {
+        const cityData = {
+          hospitals: cityHospitals.map(h => {
+            const hospitalSim = hospitalSimulationsRef.current.get(h.id);
+            return {
+              id: h.id,
+              name: h.name,
+              position: h.position,
+              stats: hospitalSim?.transferStats,
+              totalPatients: hospitalSim?.patients.length || 0
+            };
+          }),
+          allTransfers: allTransfersRef.current
+        };
+
+        let cityCsv = 'Hospital ID,Hospital Name,Total Patients,Transferred Out,Transferred In,Served\n';
+        cityData.hospitals.forEach(h => {
+          cityCsv += `${h.id},${h.name},${h.totalPatients},${h.stats?.patientsTransferredOut || 0},${h.stats?.patientsTransferredIn || 0},${h.stats?.patientsServed || 0}\n`;
+        });
+        zip.file('07-city-hospitals.csv', cityCsv);
+        zip.file('07-city-data.json', JSON.stringify(cityData, null, 2));
+      }
+
+      // 10. Complete Export JSON
+      const completeData = {
+        exportedAt: new Date().toISOString(),
+        simulationInfo: {
+          currentTime: currentTime,
+          currentDay: currentDay,
+          simulationStartTime: simulationStartTime,
+          simulationEndTime: simulationEndTime,
+          isStressTestMode: isStressTestMode,
+          viewMode: viewMode,
+          isCityMode: cityHospitals.length > 0
+        },
+        summary: summaryData,
+        currentSnapshot: {
+          time: currentTime,
+          globalStats: globalStats,
+          departmentStates: departmentStates
+        },
+        minuteByMinuteHistory: minuteByMinuteData,
+        events: {
+          totalDeaths: deathRecords.length,
+          deathRecords: deathRecords,
+          completedTransfers: completedTransfersRef.current
+        },
+        patientJourneys: patientJourneys
+      };
+      zip.file('99-COMPLETE-DATA.json', JSON.stringify(completeData, null, 2));
+
+      // 11. README
+      const readme = `# Simulation Data Export
+Exported: ${new Date().toISOString()}
+Current Time: ${currentTime} (${currentDay})
+
+## Files Included:
+
+### Summary
+- 00-SUMMARY.json - Quick overview of simulation state
+- 01-current-snapshot.csv - Current metrics in CSV format
+
+### Department Data
+- 02-department-states.csv - Current state of all departments
+
+### Timeline Data
+- 03-minute-by-minute.csv - Basic timeline data (CSV)
+- 03-minute-by-minute-full.json - Complete timeline with queue states (JSON)
+
+### Events
+- 04-death-records.csv - All deaths (CSV)
+- 04-death-records.json - All deaths with full details (JSON)
+
+### Patients
+- 05-patient-journeys.csv - Patient summary (CSV)
+- 05-patient-journeys-full.json - Complete patient journeys (JSON)
+
+### Transfers (if applicable)
+- 06-transfers.csv - Transfer history (CSV)
+- 06-transfers.json - Transfer details (JSON)
+
+### City Mode (if applicable)
+- 07-city-hospitals.csv - Hospital statistics (CSV)
+- 07-city-data.json - Complete city data (JSON)
+
+### Complete Data
+- 99-COMPLETE-DATA.json - All data in one JSON file
+
+## Key Metrics:
+- Total Patients: ${patientJourneys.length}
+- Total Deaths: ${deathRecords.length}
+- Minutes Simulated: ${currentMinutes - startMinutes}
+- Current Time: ${currentTime}
+`;
+      zip.file('README.txt', readme);
+
+      // Generate ZIP
+      const blob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 9 }
+      });
+
+      // Download
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `simulation-export-${currentDay}-${currentTime.replace(':', '-')}-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      console.log(`✅ Exported simulation data: ${patientJourneys.length} patients, ${minuteByMinuteData.length} minutes, ${deathRecords.length} deaths`);
+      alert(`✅ Simulation data exported!\n\n${patientJourneys.length} patients\n${minuteByMinuteData.length} minutes\n${deathRecords.length} deaths\n\nFiles: CSV + JSON in ZIP archive`);
+    } catch (error) {
+      console.error('Error exporting simulation data:', error);
+      alert('❌ Error exporting data. Check console for details.');
     }
   };
 
@@ -628,7 +905,14 @@ export default function SimulationPage() {
         patientsChecked++;
 
         // Check if NEXT visit needs transfer (not all visits)
-        const transferDecision = checkNextVisitTransferNeed(patient, hospitalData, allHospitalsData, currentTime);
+        // Pass queueManager to check for wait times
+        const transferDecision = checkNextVisitTransferNeed(
+          patient,
+          hospitalData,
+          allHospitalsData,
+          currentTime,
+          hospitalSim.queueManager
+        );
 
         if (transferDecision.shouldTransfer && transferDecision.targetHospitalId) {
           transfersNeeded++;
@@ -1516,6 +1800,16 @@ export default function SimulationPage() {
 
         {/* Fixed Buttons - Bottom Right */}
         <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-30">
+          <Button
+            onClick={exportCurrentSimulationData}
+            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800"
+            size="lg"
+            title="Export Current Data"
+            disabled={!queueManagerRef.current || !precomputerRef.current}
+          >
+            <span className="text-2xl">💾</span>
+          </Button>
+
           <Button
             onClick={() => setIsStatsPanelOpen(true)}
             className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform"

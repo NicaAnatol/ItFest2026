@@ -27,4 +27,70 @@ model Medic {
   createdAt      DateTime     @default(now())
 }
 
+// Simulation data models
+model SimulationPatient {
+  id                       String                 @id @default(auto()) @map("_id") @db.ObjectId
+  name                     String
+  age                      Int
+  patientType              String // emergency, common, hospitalized, scheduled_checkup
+  condition                String
+  severity                 String // critical, high, medium, low
+  mortalityRisk            Float
+  timeToTreatment          Int // minutes
+  arrivalMethod            String
+  requiresAdmission        Boolean
+  randomFactor             Float
+  mortalityIncreasePerHour Float
+  visits                   SimulationVisit[]
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
+}
+
+model SimulationVisit {
+  id          String            @id @default(auto()) @map("_id") @db.ObjectId
+  patientId   String            @db.ObjectId
+  patient     SimulationPatient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  day         String
+  departmentId String
+  startTime   String
+  endTime     String
+  createdAt   DateTime          @default(now())
+
+  @@index([patientId])
+}
+
+model SimulationBuilding {
+  id        String              @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  floors    SimulationFloor[]
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+}
+
+model SimulationFloor {
+  id          String                  @id @default(auto()) @map("_id") @db.ObjectId
+  buildingId  String                  @db.ObjectId
+  building    SimulationBuilding      @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  floorNumber Int
+  name        String
+  departments SimulationDepartment[]
+  createdAt   DateTime                @default(now())
+
+  @@index([buildingId])
+}
+
+model SimulationDepartment {
+  id       String          @id @default(auto()) @map("_id") @db.ObjectId
+  floorId  String          @db.ObjectId
+  floor    SimulationFloor @relation(fields: [floorId], references: [id], onDelete: Cascade)
+  name     String
+  type     String
+  capacity Int
+  position Json // { x: number, y: number }
+  size     Json // { width: number, height: number }
+  createdAt DateTime       @default(now())
+
+  @@index([floorId])
+}
+
 // Patient graph data lives in Neo4j — see lib/db/neo4j-patients.ts

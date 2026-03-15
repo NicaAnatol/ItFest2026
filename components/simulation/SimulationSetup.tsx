@@ -30,8 +30,12 @@ import {
   scheduledCheckupConditions
 } from '@/lib/simulation/data/medicalStatistics';
 import { AVAILABLE_DEPARTMENTS, DepartmentTemplate } from '@/lib/simulation/data/availableDepartments';
-import { ChevronRight, Info, Plus, Trash2, AlertCircle, Building2, MapPin, Settings, Users, Building, Activity, Bug, Zap } from 'lucide-react';
+import { ChevronRight, Info, Plus, Trash2, AlertCircle, Building2, MapPin, Settings, Users, Building, Activity, Bug, Zap, Download, Loader2 } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { runHeadlessSimulation } from '@/lib/simulation/utils/headlessSimulation';
+import { generateStatisticsArchive, downloadStatisticsArchive } from '@/lib/simulation/utils/statisticsArchive';
+import { runMultipleSimulations, generateMultipleSimulationsArchive, downloadMultipleSimulationsArchive } from '@/lib/simulation/utils/multipleSimulations';
+import { generateCustomBuilding, getDefaultBuilding } from '@/lib/simulation/utils/buildingGenerator';
 
 interface SimulationSetupProps {
   onStartSimulation: (config: SimulationConfig) => void;
@@ -122,6 +126,17 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
 
   // Track saved configurations per hospital
   const [savedHospitalConfigs, setSavedHospitalConfigs] = useState<{ [hospitalId: string]: boolean }>({});
+
+  // Headless simulation state
+  const [isGeneratingStats, setIsGeneratingStats] = useState(false);
+  const [statsProgress, setStatsProgress] = useState(0);
+  const [statsMessage, setStatsMessage] = useState('');
+
+  // Multiple runs state
+  const [isRunningMultiple, setIsRunningMultiple] = useState(false);
+  const [multipleRunsCount, setMultipleRunsCount] = useState(10);
+  const [multipleRunsProgress, setMultipleRunsProgress] = useState(0);
+  const [multipleRunsMessage, setMultipleRunsMessage] = useState('');
 
   // Memoize selected hospital to avoid repeated .find() calls (eliminates 23+ redundant searches)
   const selectedHospital = useMemo(
@@ -1903,7 +1918,8 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
             {/* Action Buttons */}
             <Card className="mt-6">
               <CardContent className="pt-6">
-                <div className="flex justify-between items-center">
+                <div className="space-y-4">
+                  {/* Validation Status */}
                   <div className="text-sm text-gray-600 dark:text-gray-300">
                     {totalPatientTypePercent !== 100 || totalSeverityPercent !== 100 ? (
                       <div className="flex items-center gap-2 text-orange-600">
@@ -1917,14 +1933,253 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                       </div>
                     )}
                   </div>
-                  <div className="flex gap-3">
-                    {onCancel && (
-                      <Button variant="outline" onClick={onCancel}>
-                        Cancel
+
+                  {/* All Action Buttons in one row */}
+                  <div className="flex items-end justify-between gap-3">
+                    {/* Left side - Multiple Runs */}
+                    <div className="flex items-end gap-3">
+                      <div className="w-[140px]">
+                        <Label htmlFor="multiple-runs" className="text-sm">
+                          Runs Count
+                        </Label>
+                        <Input
+                          id="multiple-runs"
+                          type="number"
+                          min={2}
+                          max={100}
+                          value={multipleRunsCount}
+                          onChange={(e) => setMultipleRunsCount(Math.max(2, Math.min(100, parseInt(e.target.value) || 10)))}
+                          className="w-full mt-1"
+                          disabled={isRunningMultiple}
+                        />
+                      </div>
+
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          // Validate percentages
+                          if (totalPatientTypePercent !== 100) {
+                            alert('⚠️ Patient type distribution must total 100%');
+                            return;
+                          }
+                          if (totalSeverityPercent !== 100) {
+                            alert('⚠️ Severity distribution must total 100%');
+                            return;
+                          }
+
+                          // Validate time range
+                          const [startH, startM] = config.startTime.split(':').map(Number);
+                          const [endH, endM] = config.endTime.split(':').map(Number);
+                          if ((endH * 60 + endM) <= (startH * 60 + startM)) {
+                            alert('⚠️ End time must be after start time');
+                            return;
+                          }
+
+                          setIsRunningMultiple(true);
+                          setMultipleRunsProgress(0);
+                          setMultipleRunsMessage('Preparing multiple simulations...');
+
+                          try {
+                            // Build custom building if needed
+                            let simulationBuilding = building;
+                            if (selectedDepartments.length > 0 && actualFloorCount > 0) {
+                              const customFloors: CustomFloorConfig[] = selectedDepartments
+                                .filter(f => f.floorId <= customFloorCount)
+                                .map(f => ({
+                                  id: f.floorId,
+                                  name: f.floorId === 1 ? 'Ground Floor' : `Floor ${f.floorId - 1}`,
+                                  departments: f.departments.map(d => ({
+                                    id: d.id,
+                                    name: d.name,
+                                    type: d.type,
+                                    capacity: config.departmentCapacities.find(dc => dc.departmentId === d.id)?.capacity || d.defaultCapacity,
+                                    processingTimeMinutes: config.departmentCapacities.find(dc => dc.departmentId === d.id)?.processingTimeMinutes || d.defaultProcessingTime,
+                                    position: { x: 0, y: 0 },
+                                    color: d.color
+                                  }))
+                                }));
+
+                              simulationBuilding = generateCustomBuilding(customFloors);
+                            } else {
+                              simulationBuilding = getDefaultBuilding();
+                            }
+
+                            // Run multiple simulations
+                            const result = await runMultipleSimulations(
+                              config,
+                              simulationBuilding,
+                              multipleRunsCount,
+                              (progress, currentRun, message) => {
+                                setMultipleRunsProgress(progress);
+                                setMultipleRunsMessage(message);
+                              }
+                            );
+
+                            setMultipleRunsMessage('Generating comprehensive archive...');
+
+                            // Generate ZIP archive with all results
+                            const blob = await generateMultipleSimulationsArchive(result, config);
+
+                            // Download
+                            downloadMultipleSimulationsArchive(blob, config.simulationDay || 'simulation');
+
+                            setMultipleRunsMessage('✅ Multiple simulations downloaded!');
+                            setTimeout(() => {
+                              setIsRunningMultiple(false);
+                              setMultipleRunsProgress(0);
+                              setMultipleRunsMessage('');
+                            }, 2000);
+
+                          } catch (error) {
+                            console.error('Error running multiple simulations:', error);
+                            alert('❌ Error running multiple simulations. Check console for details.');
+                            setIsRunningMultiple(false);
+                            setMultipleRunsProgress(0);
+                            setMultipleRunsMessage('');
+                          }
+                        }}
+                        disabled={
+                          isRunningMultiple ||
+                          totalPatientTypePercent !== 100 ||
+                          totalSeverityPercent !== 100 ||
+                          (cityEnabled && distributionMode === 'custom' && hospitals.some(h => !savedHospitalConfigs[h.id]))
+                        }
+                        className="gap-2"
+                      >
+                        {isRunningMultiple ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="max-w-[150px] truncate">
+                              {multipleRunsMessage || `${multipleRunsProgress.toFixed(0)}%`}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Activity className="h-4 w-4" />
+                            Run {multipleRunsCount}x
+                          </>
+                        )}
                       </Button>
-                    )}
-                    <Button
-                      onClick={() => {
+                    </div>
+
+                    {/* Right side - Action Buttons */}
+                    <div className="flex gap-3">
+                      {onCancel && (
+                        <Button variant="outline" onClick={onCancel}>
+                          Cancel
+                        </Button>
+                      )}
+
+                      {/* Generate Statistics Button */}
+                      <Button
+                        variant="secondary"
+                        onClick={async () => {
+                          // Same validation as Start Simulation
+                          if (totalPatientTypePercent !== 100 || totalSeverityPercent !== 100) {
+                            alert('⚠️ Distributions must total 100%');
+                            return;
+                          }
+
+                          if (cityEnabled && distributionMode === 'custom' && hospitals.some(h => !savedHospitalConfigs[h.id])) {
+                            alert('⚠️ Please save all hospital configurations first');
+                            return;
+                          }
+
+                          const [startH, startM] = config.startTime.split(':').map(Number);
+                          const [endH, endM] = config.endTime.split(':').map(Number);
+                          if ((endH * 60 + endM) <= (startH * 60 + startM)) {
+                            alert('⚠️ End time must be after start time');
+                            return;
+                          }
+
+                          setIsGeneratingStats(true);
+                          setStatsProgress(0);
+                          setStatsMessage('Preparing simulation...');
+
+                          try {
+                            // Build custom building if needed
+                            let simulationBuilding = building;
+                            if (selectedDepartments.length > 0 && actualFloorCount > 0) {
+                              const customFloors: CustomFloorConfig[] = selectedDepartments
+                                .filter(f => f.floorId <= customFloorCount)
+                                .map(f => ({
+                                  id: f.floorId,
+                                  name: f.floorId === 1 ? 'Ground Floor' : `Floor ${f.floorId - 1}`,
+                                  departments: f.departments.map(d => ({
+                                    id: d.id,
+                                    name: d.name,
+                                    type: d.type,
+                                    capacity: config.departmentCapacities.find(dc => dc.departmentId === d.id)?.capacity || d.defaultCapacity,
+                                    processingTimeMinutes: config.departmentCapacities.find(dc => dc.departmentId === d.id)?.processingTimeMinutes || d.defaultProcessingTime,
+                                    position: { x: 0, y: 0 },
+                                    color: d.color
+                                  }))
+                                }));
+
+                              simulationBuilding = generateCustomBuilding(customFloors);
+                            } else {
+                              simulationBuilding = getDefaultBuilding();
+                            }
+
+                            // Run headless simulation
+                            const result = await runHeadlessSimulation(
+                              config,
+                              simulationBuilding,
+                              (progress, message) => {
+                                setStatsProgress(progress);
+                                setStatsMessage(message);
+                              }
+                            );
+
+                            setStatsMessage('Generating archive...');
+
+                            // Generate ZIP archive
+                            const blob = await generateStatisticsArchive(result, config.simulationDay || 'simulation');
+
+                            // Download
+                            downloadStatisticsArchive(blob, config.simulationDay || 'simulation');
+
+                            setStatsMessage('✅ Statistics downloaded!');
+                            setTimeout(() => {
+                              setIsGeneratingStats(false);
+                              setStatsProgress(0);
+                              setStatsMessage('');
+                            }, 2000);
+
+                          } catch (error) {
+                            console.error('Error generating statistics:', error);
+                            alert('❌ Error generating statistics. Check console for details.');
+                            setIsGeneratingStats(false);
+                            setStatsProgress(0);
+                            setStatsMessage('');
+                          }
+                        }}
+                        disabled={
+                          isGeneratingStats ||
+                          totalPatientTypePercent !== 100 ||
+                          totalSeverityPercent !== 100 ||
+                          (cityEnabled && distributionMode === 'custom' && hospitals.some(h => !savedHospitalConfigs[h.id]))
+                        }
+                        className="gap-2"
+                      >
+                        {isGeneratingStats ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <span className="max-w-[150px] truncate">
+                              {statsMessage || `${statsProgress}%`}
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <Download className="h-4 w-4" />
+                            Generate Stats
+                          </>
+                        )}
+                      </Button>
+
+                      <Button
+                        onClick={() => {
+                        console.log('🚀 Start Simulation clicked!');
                         // Validate saved configurations in custom mode
                         if (cityEnabled && distributionMode === 'custom') {
                           const unsavedHospitals = hospitals.filter(h => !savedHospitalConfigs[h.id]);
@@ -2010,6 +2265,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                       )}
                       <ChevronRight className="h-4 w-4" />
                     </Button>
+                    </div>
                   </div>
                 </div>
               </CardContent>

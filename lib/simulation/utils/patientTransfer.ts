@@ -1,5 +1,6 @@
 import { Patient } from '@/lib/simulation/types/building';
 import { Department } from '@/lib/simulation/types/building';
+import { QueueManager } from '@/lib/simulation/data/queueManagerClass';
 
 interface Hospital {
   id: string;
@@ -16,6 +17,16 @@ interface TransferDecision {
   distance?: number; // km
   estimatedDurationMinutes?: number;
 }
+
+/**
+ * Configuration for wait time transfer thresholds
+ */
+const WAIT_TIME_THRESHOLDS = {
+  critical: 15,    // Critical patients: 15 minutes max wait
+  high: 30,        // High severity: 30 minutes max wait
+  medium: 60,      // Medium severity: 60 minutes max wait
+  low: 120         // Low severity: 120 minutes max wait
+};
 
 /**
  * Calculate distance between two hospitals (Euclidean distance on canvas, converted to km)
@@ -60,14 +71,97 @@ export function calculateTransferDuration(
 }
 
 /**
+ * Check if a patient should be transferred due to excessive wait time
+ * This checks the queue manager to see if wait times are too high
+ */
+export function checkWaitTimeTransfer(
+  patient: Patient,
+  nextDepartmentId: string,
+  currentHospital: Hospital,
+  allHospitals: Hospital[],
+  queueManager: QueueManager | null
+): TransferDecision {
+  if (!queueManager) {
+    return { shouldTransfer: false };
+  }
+
+  // Get queue state for the next department
+  const queueState = queueManager.getQueueState(nextDepartmentId);
+  if (!queueState) {
+    return { shouldTransfer: false };
+  }
+
+  // Calculate expected wait time based on queue length and processing time
+  const expectedWaitMinutes = queueState.queue.length * queueState.processingTimeMinutes;
+
+  // Get threshold based on patient severity
+  const threshold = WAIT_TIME_THRESHOLDS[patient.severity] || 60;
+
+  // If expected wait time exceeds threshold, consider transfer
+  if (expectedWaitMinutes > threshold) {
+    // Calculate additional mortality risk from waiting
+    const waitHours = expectedWaitMinutes / 60;
+    const additionalMortalityRisk = patient.mortalityIncreasePerHour * waitHours;
+    const totalMortalityRisk = patient.mortalityRisk + additionalMortalityRisk;
+
+    // Find hospital with shorter wait time
+    let bestHospital: Hospital | null = null;
+    let bestDistance = Infinity;
+    let bestWaitTime = expectedWaitMinutes;
+
+    for (const hospital of allHospitals) {
+      if (hospital.id === currentHospital.id) continue;
+
+      // Check if hospital has the needed department
+      const hasDepartment = hospital.departments.some(d =>
+        d.id === nextDepartmentId || d.type === nextDepartmentId
+      );
+
+      if (hasDepartment) {
+        // In a real implementation, we'd check that hospital's queue too
+        // For now, we assume other hospitals have better availability
+        const distance = calculateHospitalDistance(currentHospital, hospital);
+
+        // Consider transfer if it's not too far (transfer time < wait time savings)
+        const transferDuration = calculateTransferDuration(distance, patient.severity);
+        const potentialWaitSavings = expectedWaitMinutes - transferDuration;
+
+        if (potentialWaitSavings > 20 && distance < bestDistance) { // At least 20 min savings
+          bestDistance = distance;
+          bestHospital = hospital;
+          bestWaitTime = transferDuration;
+        }
+      }
+    }
+
+    if (bestHospital) {
+      const distance = calculateHospitalDistance(currentHospital, bestHospital);
+      const duration = calculateTransferDuration(distance, patient.severity);
+
+      return {
+        shouldTransfer: true,
+        targetHospitalId: bestHospital.id,
+        reason: `Long wait time (${expectedWaitMinutes}min) - Mortality risk: ${totalMortalityRisk.toFixed(1)}%`,
+        distance,
+        estimatedDurationMinutes: duration
+      };
+    }
+  }
+
+  return { shouldTransfer: false };
+}
+
+/**
  * Check if a patient needs transfer for their NEXT upcoming visit
  * This allows patients to do some visits locally, then transfer for missing departments
+ * ENHANCED: Also checks for excessive wait times
  */
 export function checkNextVisitTransferNeed(
   patient: Patient,
   currentHospital: Hospital,
   allHospitals: Hospital[],
-  currentTime: string
+  currentTime: string,
+  queueManager?: QueueManager | null
 ): TransferDecision {
   // Find the next visit that hasn't happened yet
   const todayVisits = patient.visits;
@@ -121,6 +215,21 @@ export function checkNextVisitTransferNeed(
                           availableDepartmentTypes.has(deptType);
 
   if (departmentExists) {
+    // Department exists, but check if wait time is too long
+    if (queueManager) {
+      const waitTimeTransfer = checkWaitTimeTransfer(
+        patient,
+        nextVisit.departmentId,
+        currentHospital,
+        allHospitals,
+        queueManager
+      );
+
+      if (waitTimeTransfer.shouldTransfer) {
+        return waitTimeTransfer;
+      }
+    }
+
     return { shouldTransfer: false };
   }
 
