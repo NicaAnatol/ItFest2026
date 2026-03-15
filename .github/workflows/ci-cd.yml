@@ -35,6 +35,9 @@ permissions:
 
 env:
   NODE_VERSION: "22"
+  # Dummy URL so `prisma generate` (postinstall) doesn't crash in CI.
+  # The real URL is injected at runtime via ECS Secrets Manager.
+  DATABASE_URL: "mongodb://ci:27017/ci"
 
 # ── Cancel in-progress runs on the same branch ─────────────────────────────
 concurrency:
@@ -103,7 +106,7 @@ jobs:
 
       # ── Trivy: filesystem vulnerability scan ──────────────────────────
       - name: Trivy — dependency & IaC scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.28.1
         with:
           scan-type: fs
           scan-ref: .
@@ -113,8 +116,8 @@ jobs:
           exit-code: 1       # fail the job on CRITICAL/HIGH findings
 
       - name: Upload Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
 
@@ -170,7 +173,7 @@ jobs:
 
       # ── Trivy: scan the built image ────────────────────────────────────
       - name: Trivy — container image scan
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@0.28.1
         with:
           image-ref: ${{ env.IMAGE }}:${{ env.SHA_TAG }}
           format: sarif
@@ -179,8 +182,8 @@ jobs:
           exit-code: 0   # warn only (image is already pushed)
 
       - name: Upload image scan SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        if: always() && hashFiles('trivy-image.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-image.sarif
           category: trivy-image
