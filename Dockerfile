@@ -73,14 +73,11 @@ USER nextjs
 # Next.js standalone listens on port 3000 by default
 EXPOSE 3000
 ENV PORT=3000
-# NOTE: Do NOT use ENV HOSTNAME="0.0.0.0" — ECS Fargate overrides the HOSTNAME
-# env var with the container's private DNS name (e.g. ip-10-0-139-3.ec2.internal),
-# causing the server to bind only to that interface. Health checks on localhost fail.
-# Instead we force HOSTNAME inline in CMD so it cannot be overridden.
+ENV HOSTNAME=0.0.0.0
 
 # Health check for ECS task health monitoring
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-CMD ["sh", "-c", "HOSTNAME=0.0.0.0 exec node server.js"]
+CMD ["node", "server.js"]
 
