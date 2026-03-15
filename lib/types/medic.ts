@@ -17,4 +17,3 @@ export interface Medic {
   organizationId: string;
   createdAt: string;
 }
-
