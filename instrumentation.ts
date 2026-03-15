@@ -8,6 +8,7 @@ export async function register() {
   // Only run on Node.js runtime, not Edge
   if (process.env.NEXT_RUNTIME === "edge") {
     return;
+
   }
 
   // ── Force IPv4-first globally ────────────────────────────────────────
