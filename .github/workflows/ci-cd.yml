@@ -309,11 +309,27 @@ jobs:
 
       - name: Deploy to Amazon ECS
         run: |
+          # ── Borrow network config from the working vulniq service ────────
+          # The vulniq service (same VPC) has proven connectivity to ECR,
+          # Secrets Manager, and CloudWatch through VPC endpoints.
+          # Its security group is trusted by the VPC endpoint SGs.
+          WORKING_CONFIG=$(aws ecs describe-services \
+            --cluster "vulniq-cluster" \
+            --services "vulniq-service" \
+            --query 'services[0].networkConfiguration' \
+            --output json)
+
+          UPDATED_NETWORK=$(echo "$WORKING_CONFIG" | jq '.awsvpcConfiguration.assignPublicIp = "ENABLED"')
+          echo "Network configuration (from working vulniq-service):"
+          echo "$UPDATED_NETWORK" | jq .
+
+          # ── Deploy ───────────────────────────────────────────────────────
           aws ecs update-service \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --service "${{ env.ECS_SERVICE }}" \
             --task-definition "${{ steps.register-task-def.outputs.arn }}" \
             --load-balancers '[{"targetGroupArn":"${{ env.TARGET_GROUP_ARN }}","containerName":"${{ env.ECS_CONTAINER_NAME }}","containerPort":3000}]' \
+            --network-configuration "$UPDATED_NETWORK" \
             --force-new-deployment \
             --query 'service.deployments[0].{status:status,desired:desiredCount,running:runningCount}' \
             --output table
