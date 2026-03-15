@@ -29,7 +29,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write       # needed if you switch to OIDC for AWS auth
+  id-token: write # needed if you switch to OIDC for AWS auth
   security-events: write # for uploading SARIF results
 
 env:
@@ -54,7 +54,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # full history for SonarQube blame
+          fetch-depth: 0 # full history for SonarQube blame
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -71,7 +71,7 @@ jobs:
 
       - name: Typecheck
         run: npm run typecheck
-        continue-on-error: true  # don't block on pre-existing TS errors
+        continue-on-error: true # don't block on pre-existing TS errors
 
       - name: SonarQube Scan
         # TODO: re-enable once SonarCloud project is imported:
@@ -88,7 +88,7 @@ jobs:
   security:
     name: "Security — Gitleaks · Trivy"
     runs-on: ubuntu-latest
-    needs: []  # runs in parallel with code-quality
+    needs: [] # runs in parallel with code-quality
 
     steps:
       - name: Checkout
@@ -111,7 +111,7 @@ jobs:
           format: sarif
           output: trivy-results.sarif
           severity: CRITICAL,HIGH
-          exit-code: 1       # fail the job on CRITICAL/HIGH findings
+          exit-code: 1 # fail the job on CRITICAL/HIGH findings
 
       - name: Upload Trivy SARIF
         if: always() && hashFiles('trivy-results.sarif') != ''
@@ -146,13 +146,24 @@ jobs:
       - name: Docker meta (tags + labels)
         id: meta
         run: |
-          REGISTRY=${{ steps.ecr-login.outputs.registry }}
-          REPO=${{ secrets.ECR_REPOSITORY }}
-          SHA=${GITHUB_SHA::8}
+          REGISTRY="${{ steps.ecr-login.outputs.registry }}"
+          REPO="${{ secrets.ECR_REPOSITORY }}"
+          SHA="${GITHUB_SHA::8}"
           IMAGE="${REGISTRY}/${REPO}"
-          echo "image=${IMAGE}:${SHA}" >> "$GITHUB_OUTPUT"
+          FULL_IMAGE="${IMAGE}:${SHA}"
+          echo "image=${FULL_IMAGE}" >> "$GITHUB_OUTPUT"
           echo "IMAGE=${IMAGE}" >> "$GITHUB_ENV"
           echo "SHA_TAG=${SHA}" >> "$GITHUB_ENV"
+          echo "::notice::Built image → ${FULL_IMAGE}"
+
+      - name: Verify image output
+        run: |
+          IMAGE="${{ steps.meta.outputs.image }}"
+          if [ -z "${IMAGE}" ]; then
+            echo "::error::Image output from meta step is empty — check ECR login & ECR_REPOSITORY secret"
+            exit 1
+          fi
+          echo "✅ Image output verified: ${IMAGE}"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -177,7 +188,7 @@ jobs:
           format: sarif
           output: trivy-image.sarif
           severity: CRITICAL,HIGH
-          exit-code: 0   # warn only (image is already pushed)
+          exit-code: 0 # warn only (image is already pushed)
 
       - name: Upload image scan SARIF
         if: always() && hashFiles('trivy-image.sarif') != ''
@@ -191,7 +202,10 @@ jobs:
     name: "Deploy — Amazon ECS"
     runs-on: ubuntu-latest
     needs: [build-and-push]
-    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+    if: >-
+      github.ref == 'refs/heads/master' &&
+      github.event_name == 'push' &&
+      needs.build-and-push.result == 'success'
 
     steps:
       - name: Checkout
@@ -203,6 +217,47 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: deploy-ecr-login
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute deploy image reference
+        id: deploy-image
+        run: |
+          REGISTRY="${{ steps.deploy-ecr-login.outputs.registry }}"
+          REPO="${{ secrets.ECR_REPOSITORY }}"
+          SHA="${GITHUB_SHA::8}"
+
+          if [ -z "${REGISTRY}" ]; then
+            echo "::error::Amazon ECR registry output is empty"
+            exit 1
+          fi
+
+          if [ -z "${REPO}" ]; then
+            echo "::error::ECR_REPOSITORY secret is empty or missing"
+            exit 1
+          fi
+
+          IMAGE="${REGISTRY}/${REPO}:${SHA}"
+          echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
+          echo "Resolved deploy image: ${IMAGE}"
+
+      - name: Validate image reference
+        run: |
+          IMAGE="${{ steps.deploy-image.outputs.image }}"
+          BUILD_IMAGE="${{ needs.build-and-push.outputs.image }}"
+
+          if [ -z "${IMAGE}" ]; then
+            echo "::error::Deploy image reference is empty!"
+            exit 1
+          fi
+
+          if [ -n "${BUILD_IMAGE}" ] && [ "${BUILD_IMAGE}" != "${IMAGE}" ]; then
+            echo "::warning::Recomputed deploy image (${IMAGE}) does not match build job output (${BUILD_IMAGE})"
+          fi
+
+          echo "Deploying image: ${IMAGE}"
 
       - name: Download current task definition
         run: |
@@ -217,7 +272,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ secrets.ECS_CONTAINER_NAME }}
-          image: ${{ needs.build-and-push.outputs.image }}
+          image: ${{ steps.deploy-image.outputs.image }}
 
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
@@ -227,4 +282,3 @@ jobs:
           cluster: ${{ secrets.ECS_CLUSTER }}
           wait-for-service-stability: true
           wait-for-minutes: 10
-
