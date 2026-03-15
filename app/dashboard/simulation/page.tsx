@@ -9,6 +9,7 @@ import TimeSimulator from '@/components/simulation/TimeSimulator';
 import DetailedAnalytics from '@/components/simulation/DetailedAnalytics';
 import StatisticsPanel from '@/components/simulation/StatisticsPanel';
 import SimulationSetup from '@/components/simulation/SimulationSetup';
+import AIAnalysisDrawer from '@/components/simulation/AIAnalysisDrawer';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +28,8 @@ export default function SimulationPage() {
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
   const [isStatsPanelOpen, setIsStatsPanelOpen] = useState(false);
   const [isAnalyticsPanelOpen, setIsAnalyticsPanelOpen] = useState(false);
+  const [isAIAnalysisOpen, setIsAIAnalysisOpen] = useState(false);
+  const [aiAnalysisData, setAIAnalysisData] = useState<any>(null);
 
   // City view state
   const [viewMode, setViewMode] = useState<'city' | 'hospital'>('hospital');
@@ -731,6 +734,106 @@ Current Time: ${currentTime} (${currentDay})
     } catch (error) {
       console.error('Error exporting simulation data:', error);
       alert('❌ Error exporting data. Check console for details.');
+    }
+  };
+
+  // Open AI Analysis with current data
+  const openAIAnalysis = () => {
+    if (!queueManagerRef.current || !precomputerRef.current) {
+      alert('⚠️ No simulation data available for analysis');
+      return;
+    }
+
+    try {
+      // Get current time in minutes
+      const [currentH, currentM] = currentTime.split(':').map(Number);
+      const currentMinutes = currentH * 60 + currentM;
+
+      // Get start time
+      const [startH, startM] = simulationStartTime.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+
+      // Get death records
+      const deathRecords = queueManagerRef.current.getDeathRecords();
+
+      // Get patient journeys
+      const patientJourneys = patients
+        .filter(p => {
+          const firstVisit = p.visits[0];
+          if (!firstVisit) return false;
+          const [vh, vm] = firstVisit.startTime.split(':').map(Number);
+          return (vh * 60 + vm) <= currentMinutes;
+        })
+        .map(p => ({
+          patientId: p.id,
+          patientName: p.name,
+          condition: p.condition,
+          severity: p.severity,
+          patientType: p.patientType,
+          visits: p.visits.filter(v => {
+            const [vh, vm] = v.startTime.split(':').map(Number);
+            return (vh * 60 + vm) <= currentMinutes;
+          }),
+          currentStatus: deathRecords.some(d => d.patientId === p.id) ? 'died' : 'active'
+        }));
+
+      // Get global statistics
+      const globalStats = queueManagerRef.current.getGlobalStats();
+
+      // Get department states
+      const departmentStates = Object.fromEntries(
+        Array.from(currentBuilding.floors.flatMap(f => f.departments)).map(dept => {
+          const queueState = queueManagerRef.current?.getQueueState(dept.id);
+          return [dept.id, {
+            departmentName: dept.name,
+            departmentType: dept.type,
+            currentOccupancy: queueState?.currentOccupancy || 0,
+            capacity: queueState?.capacity || 0,
+            queueLength: queueState?.queue?.length || 0,
+            isBlocked: queueState?.isBlocked || false,
+            totalVisits: queueState?.totalVisits || 0,
+            totalDeaths: queueState?.totalDeaths || 0
+          }];
+        })
+      );
+
+      // Prepare data for AI
+      const analysisData = {
+        exportedAt: new Date().toISOString(),
+        simulationInfo: {
+          currentTime: currentTime,
+          currentDay: currentDay,
+          simulationStartTime: simulationStartTime,
+          simulationEndTime: simulationEndTime,
+          isStressTestMode: isStressTestMode,
+          viewMode: viewMode,
+          isCityMode: cityHospitals.length > 0
+        },
+        summary: {
+          totalPatients: patientJourneys.length,
+          totalDeaths: deathRecords.length,
+          totalTransfers: completedTransfersRef.current.length,
+          minutesSimulated: currentMinutes - startMinutes,
+          globalStats: globalStats
+        },
+        currentSnapshot: {
+          time: currentTime,
+          globalStats: globalStats,
+          departmentStates: departmentStates
+        },
+        events: {
+          totalDeaths: deathRecords.length,
+          deathRecords: deathRecords,
+          completedTransfers: completedTransfersRef.current
+        },
+        patientJourneys: patientJourneys
+      };
+
+      setAIAnalysisData(analysisData);
+      setIsAIAnalysisOpen(true);
+    } catch (error) {
+      console.error('Error preparing AI analysis:', error);
+      alert('❌ Error preparing data for analysis');
     }
   };
 
@@ -1801,8 +1904,18 @@ Current Time: ${currentTime} (${currentDay})
         {/* Fixed Buttons - Bottom Right */}
         <div className="fixed bottom-8 right-8 flex flex-col gap-3 z-30">
           <Button
+            onClick={openAIAnalysis}
+            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-primary hover:bg-primary/90 text-primary-foreground"
+            size="lg"
+            title="AI Analysis & Recommendations"
+            disabled={!queueManagerRef.current || !precomputerRef.current}
+          >
+            <span className="text-2xl">✨</span>
+          </Button>
+
+          <Button
             onClick={exportCurrentSimulationData}
-            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-800"
+            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-accent hover:bg-accent/90 text-accent-foreground"
             size="lg"
             title="Export Current Data"
             disabled={!queueManagerRef.current || !precomputerRef.current}
@@ -1812,7 +1925,7 @@ Current Time: ${currentTime} (${currentDay})
 
           <Button
             onClick={() => setIsStatsPanelOpen(true)}
-            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform"
+            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-secondary hover:bg-secondary/90 text-secondary-foreground"
             size="lg"
             title="Department Statistics"
           >
@@ -1821,7 +1934,7 @@ Current Time: ${currentTime} (${currentDay})
 
           <Button
             onClick={() => setIsAnalyticsPanelOpen(true)}
-            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800"
+            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-muted hover:bg-muted/90 text-muted-foreground"
             size="lg"
             title="Detailed Analytics"
           >
@@ -1895,5 +2008,16 @@ Current Time: ${currentTime} (${currentDay})
   }
 
   // Show simulation view
-  return simulationView;
+  return (
+    <>
+      {simulationView}
+
+      {/* AI Analysis Drawer */}
+      <AIAnalysisDrawer
+        isOpen={isAIAnalysisOpen}
+        onClose={() => setIsAIAnalysisOpen(false)}
+        simulationData={aiAnalysisData}
+      />
+    </>
+  );
 }
