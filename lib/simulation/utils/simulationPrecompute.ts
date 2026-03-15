@@ -1,10 +1,10 @@
 import { Patient } from '../types/building';
-import { QueueManager } from '../data/queueManagerClass';
+import { QueueManager, type ExportedQueueState } from '../data/queueManagerClass';
 
 export interface PrecomputedMinuteState {
   timeMinutes: number;
   time: string;
-  queueState: any;
+  queueState: ExportedQueueState;
   departmentOccupancies: Map<string, {
     occupied: number;
     capacity: number;
@@ -65,12 +65,12 @@ export class SimulationPrecomputer {
         const [endH, endM] = visit.endTime.split(':').map(Number);
 
         // Extract mortality data if available
-        const mortalityData = (patient as any).mortalityRisk !== undefined ? {
-          mortalityRisk: (patient as any).mortalityRisk,
-          mortalityIncreasePerHour: (patient as any).mortalityIncreasePerHour || 0,
-          timeToTreatment: (patient as any).timeToTreatment || 60,
-          patientType: (patient as any).patientType,
-          condition: (patient as any).condition,
+        const mortalityData = patient.mortalityRisk !== undefined ? {
+          mortalityRisk: patient.mortalityRisk,
+          mortalityIncreasePerHour: patient.mortalityIncreasePerHour || 0,
+          timeToTreatment: patient.timeToTreatment || 60,
+          patientType: patient.patientType,
+          condition: patient.condition,
         } : undefined;
 
         events.push({

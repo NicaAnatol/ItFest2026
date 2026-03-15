@@ -144,7 +144,7 @@ export default function DetailedAnalytics({
     }
 
     // Analyze all patients
-    let totalWaitMinutes = 0;
+    const _totalWaitMinutes = 0;
     let totalProcessingMinutes = 0;
     let totalJourneyMinutes = 0;
     let journeyCount = 0;

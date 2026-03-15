@@ -12,7 +12,7 @@ export async function register() {
 
   // ── Force IPv4-first globally ────────────────────────────────────────
   // Must happen before any network call (Prisma, fetch, etc.).
-  const dns = await import("node:dns");
+  const dns = await import("dns");
   dns.setDefaultResultOrder("ipv4first");
   console.log("[instrumentation] dns.setDefaultResultOrder → ipv4first");
 
@@ -20,7 +20,7 @@ export async function register() {
   if (!url || !url.includes("mongodb")) return;
 
   try {
-    const dnsPromises = await import("node:dns/promises");
+    const dnsPromises = await import("dns/promises");
 
     // Extract the hosts section: everything between @ and /dbname
     const hostMatch = url.match(/@([^/?]+)/);

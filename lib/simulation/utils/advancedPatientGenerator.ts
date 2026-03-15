@@ -73,7 +73,7 @@ export function generatePatientsFromConfig(config: SimulationConfig): Patient[] 
   };
 
   // Apply severity shift if enabled - THIS DIRECTLY AFFECTS PATIENT TYPE DISTRIBUTION
-  let adjustedDistribution = { ...patientTypeDistribution };
+  const adjustedDistribution = { ...patientTypeDistribution };
   if (config.randomDeviation?.enabled && config.randomDeviation.severityShift) {
     const shift = config.randomDeviation.severityShift / 100;
     // Positive shift = more severe (emergency/hospitalized), negative = less severe (common/scheduled)

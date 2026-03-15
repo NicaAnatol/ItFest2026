@@ -1,14 +1,53 @@
 # MedGraph AI
 
-**Hospital Intelligence Platform** — AI-powered clinical decision analysis with graph-based patient modeling.
+**Hospital Intelligence Platform** — AI-powered clinical decision analysis with graph-based patient modeling and real-time hospital simulation.
 
 Built for **ITFest 2026**.
+
+**Production URL:** [`https://medgraph.vulniq.org`](https://medgraph.vulniq.org)
 
 ---
 
 ## What It Does
 
-MedGraph AI models every patient's hospital journey as a **directed graph** where each node is a clinical decision point. The system captures, analyzes, and visualizes the complete chain of medical decisions — from admission through discharge — enabling doctors, auditors, and hospital administrators to understand exactly what happened, why, and what could have been done differently.
+MedGraph AI is a dual-layer hospital intelligence platform that operates at both **micro** (individual patient) and **macro** (hospital system) levels:
+
+### Micro — Patient Graph Modeling
+
+Every patient's hospital journey is modeled as a **directed graph** where each node is a clinical decision point. The system captures, analyzes, and visualizes the complete chain of medical decisions — from admission through discharge — enabling doctors, auditors, and administrators to understand exactly what happened, why, and what could have been done differently.
+
+- **~24 decision nodes per patient**, each preserving **200+ data points** across 11 domains (vitals, labs, diagnosis, medications, risk scores, logistics, cost, etc.)
+- **AI-powered risk assessment** — for each decision, the system finds similar historical cases, analyzes outcomes, and generates real-time clinical alerts (drug interactions, deadly patterns, hidden conditions)
+- **Cross-case analysis** — graph alignment, similarity scoring, divergence detection, and outcome correlations across the entire patient population
+- **Three outcome types:** HEALED, HEALED_WITH_COMPLICATIONS, DECEASED
+
+### Macro — Hospital Simulation Engine
+
+A full hospital operations simulator with **isometric 3D visualization**:
+
+- **Single hospital mode** — configure departments, capacities, and patient load; simulate a full day with real-time queue management, occupancy tracking, and bottleneck detection
+- **City mode** — simulate multiple hospitals simultaneously with inter-hospital patient transfers, ambulance routing, transfer mortality calculations, and load balancing
+- **Configurable scenario planning** — adjust patient volume, department capacities, processing times, and time ranges; precompute entire simulations for instant timeline scrubbing
+- **Isometric views** — floor-by-floor hospital visualization and city-wide bird's-eye view with animated patient transfers between hospitals
+- **Detailed analytics** — department utilization heatmaps, queue lengths, wait times, patient flow statistics, and transfer logs
+
+---
+
+## Key Features
+
+| Feature | Description |
+|---|---|
+| **Patient Graph View** | Interactive directed graph + linear timeline of all clinical decisions |
+| **AI Clinical Analysis** | Dual-model pipeline (MedGemma + GPT-4o-mini) for diagnosis reasoning, risk assessment, drug interactions |
+| **AI Patient Chat** | Conversational AI assistant for each patient case — ask questions about history, risks, and recommendations |
+| **Pathway Optimizer** | AI-powered analysis of alternative treatment pathways with outcome predictions |
+| **Cross-Case Panel** | Side-by-side comparison of similar patients with graph alignment and divergence detection |
+| **Hospital Simulation** | Real-time isometric simulation with queue management, occupancy tracking, and crisis scenarios |
+| **Multi-Hospital City** | Simulate an entire city of hospitals with inter-hospital transfers and transfer mortality |
+| **Add Patient Wizard** | Step-by-step patient entry (admission → triage → diagnosis → treatment → outcome) with AI similarity matching |
+| **Ongoing Patients** | Save in-progress patients and resume entry later |
+| **Clinical Alerts** | AI-generated flags (INFO / WARNING / CRITICAL) with evidence-based recommendations |
+| **Cost Analysis** | Per-patient and per-department cost breakdowns with trend analysis |
 
 ---
 
@@ -144,15 +183,38 @@ Computed across the entire patient graph:
 
 ### AI Pipeline (Dual-Model)
 
-All 5 AI API routes use a two-phase architecture:
+All AI-powered API routes use a two-phase architecture:
 
 1. **Phase 1 — MedGemma** (`google/medgemma-27b-text-it`): Performs structured clinical analysis — diagnosis reasoning, drug interactions, risk assessment, pathway auditing, cross-case pattern analysis. Non-streaming, returns full clinical text.
 2. **Phase 2 — OpenAI** (`gpt-4o-mini`): Takes MedGemma's raw clinical output and presents it as polished, user-friendly markdown. Streaming response to client.
 3. **Fallback**: If MedGemma endpoint is unavailable, routes fall back to OpenAI-only mode.
 
+### AI Features
+
+| API Route | Purpose |
+|---|---|
+| `/api/explain` | AI-powered node/decision explanation — analyzes a specific clinical decision and its context |
+| `/api/chat` | Conversational AI for patient cases — ask questions about a patient's history, risks, and recommendations |
+| `/api/optimize` | Pathway optimizer — analyzes treatment pathways and suggests optimal alternatives |
+| `/api/cross-case` | Cross-case clinical analysis — compare patients across population |
+| `/api/cross-case-analysis` | Detailed cross-case analysis with graph alignment |
+| `/api/cross-case-step-explain` | Step-level explanation for cross-case divergence points |
+| `/api/patients` | Patient CRUD operations (Neo4j + MongoDB) |
+| `/api/health` | Container health check endpoint |
+
 ### Cross-Case Analysis
 
 Client-side computation (no API needed): patient similarity scoring, graph alignment, divergence point detection, outcome correlations — all computed from the patient graph data.
+
+### Hospital Simulation Engine
+
+Fully client-side simulation with precomputed states for instant timeline navigation:
+
+- **Queue Manager** — priority-based queue with capacity limits, processing times, and overflow detection per department
+- **Patient Generator** — realistic patient generation with configurable pathology distributions, severity levels, and visit scheduling
+- **Precomputer** — pre-calculates all simulation states for every minute of the simulation window, enabling instant scrubbing through the timeline
+- **Transfer System** — inter-hospital transfers with distance-based duration, mortality risk calculations, and patient reassignment
+- **Building Generator** — configurable hospital floor plans with department types, capacities, and isometric rendering
 
 ---
 
@@ -160,13 +222,14 @@ Client-side computation (no API needed): patient similarity scoring, graph align
 
 | Route | Description |
 |---|---|
-| `/` | Sign-in page (unauthenticated) or redirect to `/dashboard` |
+| `/` | Landing page (unauthenticated) or redirect to `/dashboard` |
 | `/auth/callback` | WorkOS OAuth callback |
 | `/dashboard` | Overview stats — cost breakdown, risk heatmap, department load, critical alerts |
-| `/dashboard/patients` | Filterable patient list |
-| `/dashboard/patients/[id]` | Patient detail — interactive graph, timeline, cost tabs, cross-case panel |
-| `/dashboard/add-patient` | Step-by-step new patient wizard with AI similarity matching |
-| `/dashboard/ongoing` | Active/ongoing patient monitoring |
+| `/dashboard/patients` | Filterable patient list with search, sorting, and outcome/triage filters |
+| `/dashboard/patients/[id]` | Patient detail — interactive graph, timeline, cost tabs, cross-case panel, AI chat |
+| `/dashboard/add-patient` | Step-by-step new patient wizard (admission → triage → diagnosis → treatment → outcome) with AI similarity matching and voice input |
+| `/dashboard/ongoing` | In-progress patients — save and resume partially entered patients |
+| `/dashboard/simulation` | Hospital simulation — configurable setup, isometric visualization, single/multi-hospital city mode |
 | `/dashboard/alerts` | AI-generated clinical alerts dashboard |
 
 ---
@@ -219,7 +282,7 @@ node scripts/generate-patient-flows.mjs   # regenerate mock data
 
 **Production URL:** `https://medgraph.vulniq.org`
 
-**Infrastructure:** AWS ECS Fargate behind an Application Load Balancer, with secrets injected from AWS Secrets Manager at container startup. CI/CD via GitHub Actions on push to `master`:
+**Infrastructure:** AWS ECS Fargate behind an Application Load Balancer, with secrets injected from AWS Secrets Manager at container startup. Multi-stage Docker build (Node 22 Alpine) with Prisma client generation and standalone Next.js output. CI/CD via GitHub Actions on push to `master`:
 
 ```
 Push → Code Quality (lint, typecheck, SonarQube)
@@ -227,6 +290,58 @@ Push → Code Quality (lint, typecheck, SonarQube)
      → Build Docker image → Push to ECR
      → Scan image with Trivy
      → Deploy to ECS (rolling update)
+```
+
+---
+
+## Project Structure
+
+```
+itfest/
+├── app/
+│   ├── api/                    # API routes (AI, CRUD, health)
+│   │   ├── chat/               # AI patient chat
+│   │   ├── explain/            # AI decision explanation
+│   │   ├── optimize/           # AI pathway optimizer
+│   │   ├── cross-case*/        # Cross-case analysis (3 routes)
+│   │   ├── patients/           # Patient CRUD (Neo4j + MongoDB)
+│   │   └── health/             # Container health check
+│   ├── auth/callback/          # WorkOS OAuth callback
+│   └── dashboard/
+│       ├── page.tsx            # Overview dashboard
+│       ├── patients/           # Patient list + detail pages
+│       ├── add-patient/        # Add patient wizard
+│       ├── ongoing/            # Ongoing patients list
+│       ├── simulation/         # Hospital simulation
+│       └── alerts/             # Clinical alerts
+├── components/
+│   ├── add-patient/            # Wizard steps (admission, triage, diagnosis, treatment, outcome)
+│   ├── ai/                     # AI components (explain button, chat, pathway optimizer)
+│   ├── alerts/                 # AI flag cards, alert banners
+│   ├── cross-case/             # Cross-case comparison panels
+│   ├── dashboard/              # Dashboard widgets
+│   ├── decision/               # Decision detail, alternatives, risk gauges
+│   ├── execution/              # Execution timeline, cost breakdown
+│   ├── graph/                  # Patient graph visualization
+│   ├── historical/             # Similar cases, pattern matching
+│   ├── landing/                # Landing page
+│   ├── patient/                # Patient cards, vitals, diagnosis
+│   ├── simulation/             # Isometric views, time controls, analytics
+│   └── ui/                     # shadcn/ui primitives
+├── lib/
+│   ├── ai/                     # AI client, prompts, context builders
+│   ├── cross-case/             # Similarity, alignment, divergence utils
+│   ├── data/                   # Patient data fetching + caching
+│   ├── db/                     # Database layer (Neo4j, Prisma/MongoDB)
+│   ├── graph/                  # Graph processing utilities
+│   ├── ongoing/                # Ongoing patient types
+│   ├── risk/                   # Risk calculation utilities
+│   ├── simulation/             # Simulation engine (types, utils, data)
+│   ├── types/                  # Domain TypeScript types
+│   └── utils/                  # Formatting, display utilities
+├── public/data/                # patient-flows.json (~100 patients)
+├── prisma/                     # Prisma schema (MongoDB)
+└── scripts/                    # Data generation scripts
 ```
 
 ---

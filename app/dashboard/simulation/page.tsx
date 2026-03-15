@@ -1504,7 +1504,7 @@ export default function SimulationPage() {
                     totalExits={patientsExited}
                     currentSeconds={currentSeconds}
                     customCapacities={stressTestCapacities || undefined}
-                    queueManager={queueManagerRef.current}
+                    queueManager={queueManagerRef.current ?? undefined}
                     queueUpdateTrigger={queueUpdateTrigger}
                     departmentOccupancies={departmentOccupancies}
                   />

@@ -45,6 +45,24 @@ export interface QueueState {
   deathsDuringTreatment: number;  // NEW: Deaths while being treated
 }
 
+export interface ExportedQueueState {
+  departments: Record<string, {
+    currentOccupancy: number;
+    queue: PatientQueueInfo[];
+    isBlocked: boolean;
+    occupiedPatients: string[];
+    totalBlockedMinutes: number;
+    lastBlockedTime: number | null;
+    totalDeaths: number;
+    deathsFromDelay: number;
+    deathsNatural: number;
+    deathsDuringTreatment: number;
+  }>;
+  deathRecords: DeathRecord[];
+  deathsByType: [string, number][];
+  globalDeaths: number;
+}
+
 export class QueueManager {
   private queues: Map<string, QueueState> = new Map();
   private globalDeaths: number = 0;
@@ -406,8 +424,8 @@ export class QueueManager {
   }
 
   // Export state for saving
-  exportState(): any {
-    const exported: any = {
+  exportState(): ExportedQueueState {
+    const exported: ExportedQueueState = {
       departments: {},
       deathRecords: [...this.deathRecords],  // NEW: Export death records
       deathsByType: Array.from(this.deathsByType.entries()),  // NEW: Export deaths by type
@@ -432,7 +450,7 @@ export class QueueManager {
   }
 
   // Import state for loading
-  importState(exported: any): void {
+  importState(exported: ExportedQueueState): void {
     // Import death records if available
     if (exported.deathRecords) {
       this.deathRecords = [...exported.deathRecords];
@@ -450,7 +468,7 @@ export class QueueManager {
 
     // Import department states
     const departments = exported.departments || exported;  // Support old format
-    Object.entries(departments).forEach(([deptId, data]: [string, any]) => {
+    Object.entries(departments).forEach(([deptId, data]: [string, ExportedQueueState['departments'][string]]) => {
       if (deptId === 'deathRecords' || deptId === 'deathsByType' || deptId === 'globalDeaths') {
         return;  // Skip meta fields
       }

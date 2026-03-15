@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -40,40 +40,52 @@ interface SimulationSetupProps {
 
 export default function SimulationSetup({ onStartSimulation, onCancel }: SimulationSetupProps) {
   const [selectedPreset, setSelectedPreset] = useState<SimulationPreset>(SIMULATION_PRESETS[0]);
-  const [config, setConfig] = useState<SimulationConfig>({
-    totalPatients: 500,
-    simulationDay: 'Test Day',
-    startTime: '07:00',
-    endTime: '20:00',
-    departmentCapacities: [],
-    patientTypeDistribution: {
-      emergency: 15,
-      common: 50,
-      hospitalized: 20,
-      scheduled_checkup: 15
-    },
-    severityDistribution: {
-      critical: 10,
-      high: 20,
-      medium: 40,
-      low: 30
-    },
-    specificConditions: [],
-    departmentFilters: [],
-    randomDeviation: {
-      enabled: true,
-      severityShift: 0,
-      mortalityMultiplier: 1.0,
-      timeMultiplier: 1.0,
-      patientCountVariance: 10
-    },
-    advancedSettings: {
-      peakHourMultiplier: 1.5,
-      ageDistributionShift: 'balanced',
-      emergencyFrequency: 'normal',
-      useAllDepartments: false,
-      minimumQueueLength: 0
-    }
+  const [config, setConfig] = useState<SimulationConfig>(() => {
+    const capacities: DepartmentCapacityConfig[] = [];
+    building.floors.forEach(floor => {
+      floor.departments.forEach(dept => {
+        capacities.push({
+          departmentId: dept.id,
+          capacity: dept.capacity || 5,
+          processingTimeMinutes: dept.processingTimeMinutes || 30
+        });
+      });
+    });
+    return {
+      totalPatients: 500,
+      simulationDay: 'Test Day',
+      startTime: '07:00',
+      endTime: '20:00',
+      departmentCapacities: capacities,
+      patientTypeDistribution: {
+        emergency: 15,
+        common: 50,
+        hospitalized: 20,
+        scheduled_checkup: 15
+      },
+      severityDistribution: {
+        critical: 10,
+        high: 20,
+        medium: 40,
+        low: 30
+      },
+      specificConditions: [],
+      departmentFilters: [],
+      randomDeviation: {
+        enabled: true,
+        severityShift: 0,
+        mortalityMultiplier: 1.0,
+        timeMultiplier: 1.0,
+        patientCountVariance: 10
+      },
+      advancedSettings: {
+        peakHourMultiplier: 1.5,
+        ageDistributionShift: 'balanced',
+        emergencyFrequency: 'normal',
+        useAllDepartments: false,
+        minimumQueueLength: 0
+      }
+    };
   });
 
   const [activeTab, setActiveTab] = useState('preset');
@@ -84,7 +96,19 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
   const [selectedDepartments, setSelectedDepartments] = useState<{
     floorId: number;
     departments: DepartmentTemplate[];
-  }[]>([]);
+  }[]>(() => {
+    const floorGroups: { [key: number]: DepartmentTemplate[] } = {};
+    AVAILABLE_DEPARTMENTS.forEach(dept => {
+      if (!floorGroups[dept.floor]) {
+        floorGroups[dept.floor] = [];
+      }
+      floorGroups[dept.floor].push(dept);
+    });
+    return Object.keys(floorGroups).map(floorId => ({
+      floorId: parseInt(floorId),
+      departments: floorGroups[parseInt(floorId)]
+    }));
+  });
 
   // City configuration state
   const [cityEnabled, setCityEnabled] = useState(false);
@@ -119,39 +143,6 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
     return occupied.length > 0 ? Math.max(...occupied) : 0;
   }, [selectedDepartments]);
 
-  // Initialize custom building structure
-  useEffect(() => {
-    // Group default departments by floor
-    const floorGroups: { [key: number]: DepartmentTemplate[] } = {};
-    AVAILABLE_DEPARTMENTS.forEach(dept => {
-      if (!floorGroups[dept.floor]) {
-        floorGroups[dept.floor] = [];
-      }
-      floorGroups[dept.floor].push(dept);
-    });
-
-    const initialFloors = Object.keys(floorGroups).map(floorId => ({
-      floorId: parseInt(floorId),
-      departments: floorGroups[parseInt(floorId)]
-    }));
-
-    setSelectedDepartments(initialFloors);
-  }, []);
-
-  // Initialize department capacities from building data
-  useEffect(() => {
-    const capacities: DepartmentCapacityConfig[] = [];
-    building.floors.forEach(floor => {
-      floor.departments.forEach(dept => {
-        capacities.push({
-          departmentId: dept.id,
-          capacity: dept.capacity || 5,
-          processingTimeMinutes: dept.processingTimeMinutes || 30
-        });
-      });
-    });
-    setConfig(prev => ({ ...prev, departmentCapacities: capacities }));
-  }, []);
 
   // Apply preset
   const applyPreset = (preset: SimulationPreset) => {
@@ -565,7 +556,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
 
                             for (let i = 0; i < hospitalCount; i++) {
                               let hospitalConfig = { ...baseConfig };
-                              let customBuilding = buildCustomBuilding(customFloorCount);
+                              const customBuilding = buildCustomBuilding(customFloorCount);
 
                               if (distributionMode === 'auto') {
                                 // Auto: calculate based on population
@@ -702,7 +693,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                 ) : (
                                   <div className="mt-3 p-2 bg-orange-50 dark:bg-orange-900/20 rounded border">
                                     <p className="text-xs text-orange-800 dark:text-orange-200 font-semibold">
-                                      ⚠️ Don't forget to press "💾 Save Configuration" to save changes!
+                                      ⚠️ Don&apos;t forget to press &ldquo;💾 Save Configuration&rdquo; to save changes!
                                     </p>
                                   </div>
                                 )}
@@ -859,7 +850,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                       This hospital is configured automatically based on population. Patients: {hospitals.find(h => h.id === selectedHospitalId)?.simulationConfig.totalPatients}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                      To edit manually, change mode to "Manual" or "Custom".
+                                      To edit manually, change mode to &ldquo;Manual&rdquo; or &ldquo;Custom&rdquo;.
                                     </p>
                                   </div>
                                 ) : (
@@ -986,7 +977,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                           <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded">
                                             <p className="text-sm font-semibold text-foreground">🏗️ Structure Configuration</p>
                                             <p className="text-xs text-muted-foreground mt-1">
-                                              Use the tab <strong>"Structure"</strong> above to configure floors and departments.
+                                              Use the tab <strong>&ldquo;Structure&rdquo;</strong> above to configure floors and departments.
                                             </p>
                                             <p className="text-xs text-muted-foreground mt-1">
                                               The settings created there will be saved for {distributionMode === 'custom' ? 'this hospital' : 'all hospitals'}.
@@ -999,7 +990,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                             onClick={() => setActiveTab('structure')}
                                           >
                                             <Building className="h-4 w-4 mr-2" />
-                                            Open Tab "Structure"
+                                            Open Tab &ldquo;Structure&rdquo;
                                           </Button>
 
                                           {hospitals.find(h => h.id === selectedHospitalId)?.customBuilding && (
@@ -1497,7 +1488,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                         <div className="space-y-1">
                           <p className="font-semibold text-foreground">Adjust Hospital Structure</p>
                           <p className="text-blue-700 dark:text-blue-200 text-xs">
-                            Structure modifications will generate a custom hospital. Individual capacities can be set in the tab "Departments".
+                            Structure modifications will generate a custom hospital. Individual capacities can be set in the tab &ldquo;Departments&rdquo;.
                           </p>
                         </div>
                       </div>

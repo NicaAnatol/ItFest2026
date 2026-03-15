@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Floor, Department } from '@/lib/simulation/types/building';
+import type { QueueManager } from '@/lib/simulation/data/queueManagerClass';
 
 interface IsometricFloorViewProps {
   floor: Floor;
@@ -14,7 +15,7 @@ interface IsometricFloorViewProps {
   totalExits: number;
   currentSeconds: number;
   customCapacities?: { [deptId: string]: { capacity: number; processingTimeMinutes: number } };
-  queueManager?: any;
+  queueManager?: QueueManager;
   queueUpdateTrigger?: number;
   departmentOccupancies?: Map<string, {
     occupied: number;

@@ -27,7 +27,7 @@ interface StatisticsPanelProps {
     distance?: number;
     durationMinutes?: number;
   }>;
-  activeeTransfers?: Patient[];
+  activeTransfers?: Patient[];
 }
 
 export default function StatisticsPanel({
@@ -39,7 +39,7 @@ export default function StatisticsPanel({
   isOpen,
   onClose,
   completedTransfers = [],
-  activeeTransfers = [],
+  activeTransfers = [],
 }: StatisticsPanelProps) {
   const [currentHours, currentMinutes] = currentTime.split(':').map(Number);
   const currentTotalMinutes = currentHours * 60 + currentMinutes;
@@ -217,7 +217,7 @@ export default function StatisticsPanel({
           {/* Content - Scrollable */}
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {/* TRANSFER HISTORY SECTION */}
-            {(completedTransfers.length > 0 || activeeTransfers.length > 0) && (
+            {(completedTransfers.length > 0 || activeTransfers.length > 0) && (
               <div className="mb-6">
                 <div className="mb-3">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -233,9 +233,9 @@ export default function StatisticsPanel({
                     <CardTitle className="text-base flex items-center justify-between">
                       <span>Transfer Summary</span>
                       <div className="flex gap-2">
-                        {activeeTransfers.length > 0 && (
+                        {activeTransfers.length > 0 && (
                           <Badge className="bg-red-600 text-white animate-pulse">
-                            🚑 {activeeTransfers.length} active
+                            🚑 {activeTransfers.length} active
                           </Badge>
                         )}
                         <Badge className="bg-purple-600 text-white">
@@ -246,12 +246,12 @@ export default function StatisticsPanel({
                   </CardHeader>
                   <CardContent className="space-y-2 text-sm">
                     {/* Active transfers */}
-                    {activeeTransfers.length > 0 && (
+                    {activeTransfers.length > 0 && (
                       <div className="space-y-2">
                         <div className="text-xs font-semibold text-red-600 dark:text-red-400">
                           🚨 Active Transfers:
                         </div>
-                        {activeeTransfers.map((transfer, idx) => (
+                        {activeTransfers.map((transfer, idx) => (
                           <div
                             key={`${transfer.id}-${transfer.transferTo || 'unknown'}-${idx}`}
                             className="p-2 bg-red-50 dark:bg-red-900/20 rounded border border-red-500 animate-pulse"
@@ -311,7 +311,7 @@ export default function StatisticsPanel({
                       </div>
                     )}
 
-                    {completedTransfers.length === 0 && activeeTransfers.length === 0 && (
+                    {completedTransfers.length === 0 && activeTransfers.length === 0 && (
                       <div className="text-xs text-muted-foreground text-center py-4">
                         No transfers yet
                       </div>
