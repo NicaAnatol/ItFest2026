@@ -6,14 +6,15 @@
 # Required GitHub Secrets:
 #   AWS_ACCESS_KEY_ID          — IAM user with ECR + ECS permissions
 #   AWS_SECRET_ACCESS_KEY      — corresponding secret
-#   AWS_REGION                 — e.g. eu-central-1
-#   ECR_REPOSITORY             — ECR repo name (e.g. medgraph-ai)
-#   ECS_CLUSTER                — ECS cluster name
-#   ECS_SERVICE                — ECS service name
-#   ECS_TASK_DEFINITION        — task definition family name (e.g. medgraph-ai)
-#   ECS_CONTAINER_NAME         — container name inside the task definition
+#   AWS_REGION                 — e.g. us-east-1
 #   SONAR_TOKEN                — SonarQube / SonarCloud token
 #   SONAR_HOST_URL             — SonarQube server URL (defaults to https://sonarcloud.io)
+#
+# Infrastructure constants (hardcoded — change here if AWS resources are renamed):
+#   ECR_REPOSITORY             — medgraph-ai
+#   ECS_CLUSTER                — medgraph-ai
+#   ECS_SERVICE                — medgraph-ai-service-is5u7ylu
+#   ECS_CONTAINER_NAME         — medgraph-ai  (must match .aws/task-definition.json)
 #
 # Required GitHub Variables (non-secret):
 #   (none — project key & org are in sonar-project.properties)
@@ -37,6 +38,11 @@ env:
   # Dummy URL so `prisma generate` (postinstall) doesn't crash in CI.
   # The real URL is injected at runtime via ECS Secrets Manager.
   DATABASE_URL: "mongodb://ci:27017/ci"
+  # ── Infrastructure constants ──────────────────────────────────────────────
+  ECR_REPOSITORY: medgraph-ai
+  ECS_CLUSTER: medgraph-ai
+  ECS_SERVICE: medgraph-ai-service-is5u7ylu
+  ECS_CONTAINER_NAME: medgraph-ai
 
 # ── Cancel in-progress runs on the same branch ─────────────────────────────
 concurrency:
@@ -88,7 +94,7 @@ jobs:
   security:
     name: "Security — Gitleaks · Trivy"
     runs-on: ubuntu-latest
-    needs: [] # runs in parallel with code-quality
+    # runs in parallel with code-quality (no needs)
 
     steps:
       - name: Checkout
@@ -147,7 +153,7 @@ jobs:
         id: meta
         run: |
           REGISTRY="${{ steps.ecr-login.outputs.registry }}"
-          REPO="${{ secrets.ECR_REPOSITORY }}"
+          REPO="${{ env.ECR_REPOSITORY }}"
           SHA="${GITHUB_SHA::8}"
           IMAGE="${REGISTRY}/${REPO}"
           FULL_IMAGE="${IMAGE}:${SHA}"
@@ -222,11 +228,11 @@ jobs:
         id: deploy-ecr-login
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Compute deploy image reference
+      - name: Resolve image reference
         id: deploy-image
         run: |
           REGISTRY="${{ steps.deploy-ecr-login.outputs.registry }}"
-          REPO="${{ secrets.ECR_REPOSITORY }}"
+          REPO="${{ env.ECR_REPOSITORY }}"
           SHA="${GITHUB_SHA::8}"
 
           if [ -z "${REGISTRY}" ]; then
@@ -234,51 +240,23 @@ jobs:
             exit 1
           fi
 
-          if [ -z "${REPO}" ]; then
-            echo "::error::ECR_REPOSITORY secret is empty or missing"
-            exit 1
-          fi
-
           IMAGE="${REGISTRY}/${REPO}:${SHA}"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "Resolved deploy image: ${IMAGE}"
-
-      - name: Validate image reference
-        run: |
-          IMAGE="${{ steps.deploy-image.outputs.image }}"
-          BUILD_IMAGE="${{ needs.build-and-push.outputs.image }}"
-
-          if [ -z "${IMAGE}" ]; then
-            echo "::error::Deploy image reference is empty!"
-            exit 1
-          fi
-
-          if [ -n "${BUILD_IMAGE}" ] && [ "${BUILD_IMAGE}" != "${IMAGE}" ]; then
-            echo "::warning::Recomputed deploy image (${IMAGE}) does not match build job output (${BUILD_IMAGE})"
-          fi
-
-          echo "Deploying image: ${IMAGE}"
-
-      - name: Download current task definition
-        run: |
-          aws ecs describe-task-definition \
-            --task-definition ${{ secrets.ECS_TASK_DEFINITION }} \
-            --query 'taskDefinition' \
-            --output json > task-definition.json
 
       - name: Update image in task definition
         id: render-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
-          task-definition: task-definition.json
-          container-name: ${{ secrets.ECS_CONTAINER_NAME }}
+          task-definition: .aws/task-definition.json
+          container-name: ${{ env.ECS_CONTAINER_NAME }}
           image: ${{ steps.deploy-image.outputs.image }}
 
       - name: Deploy to Amazon ECS
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: ${{ secrets.ECS_SERVICE }}
-          cluster: ${{ secrets.ECS_CLUSTER }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
           wait-for-service-stability: true
           wait-for-minutes: 10
