@@ -139,7 +139,7 @@ export function AiExplainButton({
             </DrawerDescription>
           </DrawerHeader>
 
-          <ScrollArea className="flex-1 overflow-auto px-4" orientation="vertical">
+          <ScrollArea className="flex-1 overflow-auto px-4">
             <div className="pb-4">
               {loading && !text && (
                 <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground">

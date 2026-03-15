@@ -1,7 +1,7 @@
 // Decision analysis helpers
 
 import type { PatientNode } from "@/lib/types/patient";
-import type { Decision, Alternative } from "@/lib/types/decision";
+import type { Decision } from "@/lib/types/decision";
 import type { Flag } from "@/lib/types/historical";
 
 /** Get decision quality from a node's transition outcome */

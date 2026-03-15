@@ -34,7 +34,7 @@ export function getNodeDepth(nodeId: string, edges: PatientEdge[]): number {
 }
 
 /** Get critical path — the longest path from first to last node */
-export function getCriticalPath(nodes: PatientNode[], edges: PatientEdge[]): PatientNode[] {
+export function getCriticalPath(nodes: PatientNode[], _edges: PatientEdge[]): PatientNode[] {
   if (!nodes.length) return [];
   // Since the graph is sequential, the critical path is just all nodes in order
   return [...nodes].sort((a, b) => a.sequence - b.sequence);

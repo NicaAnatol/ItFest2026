@@ -13,11 +13,10 @@
 #   ECS_TASK_DEFINITION        — task definition family name (e.g. medgraph-ai)
 #   ECS_CONTAINER_NAME         — container name inside the task definition
 #   SONAR_TOKEN                — SonarQube / SonarCloud token
-#   SONAR_HOST_URL             — SonarQube server URL (omit for SonarCloud)
+#   SONAR_HOST_URL             — SonarQube server URL (defaults to https://sonarcloud.io)
 #
 # Required GitHub Variables (non-secret):
-#   SONAR_PROJECT_KEY          — SonarQube project key
-#   SONAR_ORG                  — SonarCloud organization (if using SonarCloud)
+#   (none — project key & org are in sonar-project.properties)
 # ============================================================================
 
 name: CI/CD — Scan · Build · Deploy
@@ -75,13 +74,15 @@ jobs:
         continue-on-error: true  # don't block on pre-existing TS errors
 
       - name: SonarQube Scan
-        if: github.event_name == 'push' && env.SONAR_TOKEN != ''
+        # TODO: re-enable once SonarCloud project is imported:
+        #   if: github.event_name == 'push' && env.SONAR_TOKEN != ''
+        if: false
         uses: SonarSource/sonarqube-scan-action@v6
         with:
           projectBaseDir: .
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL || 'https://sonarcloud.io' }}
 
   # ── 2. Security ──────────────────────────────────────────────────────────
   security:

@@ -12,7 +12,6 @@ import {
   Info,
   ShieldWarning,
   TrendUp,
-  TrendDown,
   Clock,
   GitFork,
   LightbulbFilament,

@@ -11,10 +11,8 @@ import {
   ArrowRight,
   UserPlus,
   Heartbeat,
-  FirstAid,
   MagnifyingGlass,
   Stethoscope,
-  FlagBanner,
   Clock,
 } from "@phosphor-icons/react";
 import Link from "next/link";

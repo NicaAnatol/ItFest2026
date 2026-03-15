@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -8,7 +7,6 @@ import { formatRiskPercentage } from "@/lib/utils/format";
 import {
   Warning,
   CheckCircle,
-  Lightbulb,
   CaretDown,
   ShieldCheck,
 } from "@phosphor-icons/react";

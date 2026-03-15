@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { PatientGraph, OutcomeStatus, TriageCode } from "@/lib/types/patient";
+import type { PatientGraph } from "@/lib/types/patient";
 import { PatientCard } from "./patient-card";
 import { Input } from "@/components/ui/input";
 import {

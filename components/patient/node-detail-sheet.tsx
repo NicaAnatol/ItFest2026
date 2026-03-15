@@ -64,7 +64,7 @@ export function NodeDetailSheet({ node, open, onOpenChange }: NodeDetailSheetPro
         </SheetHeader>
 
         <Tabs defaultValue="state" className="mt-2">
-          <ScrollArea orientation="horizontal" className="w-full px-4">
+          <ScrollArea className="w-full px-4">
             <TabsList className="w-max">
               <TabsTrigger value="state" className="text-xs">State</TabsTrigger>
               <TabsTrigger value="decision" className="text-xs">Decision</TabsTrigger>
@@ -82,7 +82,7 @@ export function NodeDetailSheet({ node, open, onOpenChange }: NodeDetailSheetPro
             </TabsList>
           </ScrollArea>
 
-          <ScrollArea className="h-[calc(100vh-140px)]" orientation="both">
+          <ScrollArea className="h-[calc(100vh-140px)]">
             <div className="p-4">
               {/* Patient State Tab */}
               <TabsContent value="state" className="mt-0 space-y-4">

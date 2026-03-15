@@ -1,6 +1,6 @@
 "use client";
 
-import { getRiskLevel, getRiskColor } from "@/lib/utils/format";
+import { getRiskLevel } from "@/lib/utils/format";
 
 interface RiskGaugeProps {
   /** 0..1 */
