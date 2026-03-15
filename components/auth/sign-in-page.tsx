@@ -56,9 +56,6 @@ export function SignInPage({ signInUrl, signUpUrl }: SignInPageProps) {
           </CardContent>
         </Card>
 
-        <p className="text-center text-xs text-muted-foreground">
-          Secured by WorkOS AuthKit · Built for ITFest 2026
-        </p>
       </div>
     </div>
   );
