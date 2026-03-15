@@ -73,13 +73,11 @@ USER nextjs
 # Next.js standalone listens on port 3000 by default
 EXPOSE 3000
 ENV PORT=3000
-# NOTE: Do NOT set ENV HOSTNAME="0.0.0.0" — it leaks into request.url and
-# causes post-auth redirects to https://0.0.0.0:3000/...
-# Instead we pass -H 0.0.0.0 as a CLI flag in the CMD below.
+ENV HOSTNAME="0.0.0.0"
 
 # Health check for ECS task health monitoring
 HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-CMD ["node", "server.js", "-H", "0.0.0.0"]
+CMD ["node", "server.js"]
 
