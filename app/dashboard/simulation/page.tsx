@@ -1083,11 +1083,11 @@ export default function SimulationPage() {
                         </div>
                         <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                           <span className="text-sm text-muted-foreground">Entered:</span>
-                          <Badge variant="default" className="bg-green-600">{totalEntered}</Badge>
+                          <Badge variant="default" className="bg-green-600 dark:bg-green-700">{totalEntered}</Badge>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                           <span className="text-sm text-muted-foreground">Exited:</span>
-                          <Badge variant="default" className="bg-blue-600">{totalExited}</Badge>
+                          <Badge variant="default" className="bg-blue-600 dark:bg-blue-700">{totalExited}</Badge>
                         </div>
                         <Separator />
                         <div className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
@@ -1096,7 +1096,7 @@ export default function SimulationPage() {
                         </div>
                         <div className="flex justify-between items-center p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
                           <span className="text-sm text-muted-foreground">Waiting:</span>
-                          <Badge variant="default" className="bg-yellow-500">{totalWaiting}</Badge>
+                          <Badge variant="default" className="bg-yellow-500 dark:bg-yellow-600">{totalWaiting}</Badge>
                         </div>
                         <div className="flex justify-between items-center p-2 bg-muted rounded-lg">
                           <span className="text-sm text-muted-foreground">City utilization:</span>
@@ -1106,26 +1106,26 @@ export default function SimulationPage() {
                         {uniqueTransferredPatients > 0 && (
                           <div className="flex justify-between items-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                             <span className="text-sm font-semibold text-purple-700 dark:text-purple-300">🏥 Patients Transferred:</span>
-                            <Badge className="bg-purple-600 text-white">{uniqueTransferredPatients}</Badge>
+                            <Badge className="bg-purple-600 dark:bg-purple-700 text-white">{uniqueTransferredPatients}</Badge>
                           </div>
                         )}
                         {transferringPatients.length > 0 && (
                           <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 border border-red-500 rounded-lg animate-pulse">
                             <span className="text-sm font-bold text-red-600 dark:text-red-400">🚑 Active Transfer:</span>
-                            <Badge className="bg-red-600 text-white">{transferringPatients.length}</Badge>
+                            <Badge className="bg-red-600 dark:bg-red-700 text-white">{transferringPatients.length}</Badge>
                           </div>
                         )}
                         {totalTransfersCompleted > 0 && (
                           <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                             <span className="text-sm text-muted-foreground">✅ Completed Transfers:</span>
-                            <Badge className="bg-green-600 text-white">{totalTransfersCompleted}</Badge>
+                            <Badge className="bg-green-600 dark:bg-green-700 text-white">{totalTransfersCompleted}</Badge>
                           </div>
                         )}
                         {uniquePatientsLeftSystem > 0 && (
                           <div className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 border border-red-700 rounded-lg">
                             <span className="text-sm font-bold text-red-700 dark:text-red-400">🌍 Left System:</span>
                             <div className="flex flex-col items-end">
-                              <Badge className="bg-red-700 text-white">{uniquePatientsLeftSystem}</Badge>
+                              <Badge className="bg-red-700 dark:bg-red-800 text-white">{uniquePatientsLeftSystem}</Badge>
                               {patientsCurrentlyLeaving > 0 && (
                                 <span className="text-xs text-red-500 mt-0.5">({patientsCurrentlyLeaving} en route)</span>
                               )}
@@ -1138,7 +1138,7 @@ export default function SimulationPage() {
                         {totalDeaths > 0 && (
                           <div className="flex justify-between items-center p-2 bg-black dark:bg-gray-900 border border-red-600 rounded-lg">
                             <span className="text-sm font-bold text-red-600 dark:text-red-400">Total Deaths (City):</span>
-                            <Badge className="bg-red-600 text-white text-base">{totalDeaths}</Badge>
+                            <Badge className="bg-red-600 dark:bg-red-700 text-white text-base">{totalDeaths}</Badge>
                           </div>
                         )}
                       </>
@@ -1178,23 +1178,23 @@ export default function SimulationPage() {
                         </div>
                         <div className="flex justify-between items-center p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
                           <span className="text-sm text-muted-foreground">✅ Served here:</span>
-                          <Badge className="bg-green-600 text-white">{patientsServed}</Badge>
+                          <Badge className="bg-green-600 dark:bg-green-700 text-white">{patientsServed}</Badge>
                         </div>
                         {transferredOut > 0 && (
                           <div className="flex justify-between items-center p-2 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
                             <span className="text-sm text-muted-foreground">📤 Transferred out:</span>
-                            <Badge className="bg-orange-600 text-white">{transferredOut}</Badge>
+                            <Badge className="bg-orange-600 dark:bg-orange-700 text-white">{transferredOut}</Badge>
                           </div>
                         )}
                         {transferredIn > 0 && (
                           <div className="flex justify-between items-center p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                             <span className="text-sm text-muted-foreground">📥 Received:</span>
-                            <Badge className="bg-blue-600 text-white">{transferredIn}</Badge>
+                            <Badge className="bg-blue-600 dark:bg-blue-700 text-white">{transferredIn}</Badge>
                           </div>
                         )}
                         <div className="flex justify-between items-center p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                           <span className="text-sm text-muted-foreground">👥 Current total:</span>
-                          <Badge className="bg-purple-600 text-white">{hospitalSim.patients.length}</Badge>
+                          <Badge className="bg-purple-600 dark:bg-purple-700 text-white">{hospitalSim.patients.length}</Badge>
                         </div>
                         <Separator />
                       </>
@@ -1356,14 +1356,14 @@ export default function SimulationPage() {
           {/* RIGHT COLUMN - Canvas View */}
           <div className="lg:col-span-5 space-y-4">
             {isPrecomputing && (
-              <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-500">
+              <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-500 dark:border-blue-700">
                 <CardContent className="pt-4 pb-3">
                   <div className="text-sm font-semibold mb-2 text-blue-600 dark:text-blue-400">
                     Pre-computing simulation...
                   </div>
                   <div className="w-full bg-secondary rounded-full h-2">
                     <div
-                      className="bg-blue-500 h-2 rounded-full transition-all duration-300"
+                      className="bg-blue-500 dark:bg-blue-600 h-2 rounded-full transition-all duration-300"
                       style={{ width: `${precomputeProgress}%` }}
                     ></div>
                   </div>
@@ -1375,7 +1375,7 @@ export default function SimulationPage() {
             )}
 
             {isPrecomputeReady && (
-              <Card className="bg-green-50 dark:bg-green-900/20 border-green-500">
+              <Card className="bg-green-50 dark:bg-green-900/20 border-green-500 dark:border-green-700">
                 <CardContent className="pt-3 pb-2">
                   <div className="text-xs font-semibold text-green-600 dark:text-green-400">
                     Ready! Instant navigation enabled (all states pre-calculated)
@@ -1527,7 +1527,7 @@ export default function SimulationPage() {
 
           <Button
             onClick={() => setIsAnalyticsPanelOpen(true)}
-            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-purple-600 hover:bg-purple-700"
+            className="h-14 w-14 rounded-full shadow-2xl hover:scale-110 transition-transform bg-purple-600 dark:bg-purple-700 hover:bg-purple-700 dark:hover:bg-purple-800"
             size="lg"
             title="Detailed Analytics"
           >
