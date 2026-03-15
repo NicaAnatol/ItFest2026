@@ -277,9 +277,9 @@ jobs:
           echo "Deployment triggered ✅"
 
       - name: Wait for service stability
-        timeout-minutes: 2
+        timeout-minutes: 15
         run: |
-          echo "Waiting for service to stabilize (up to 2 min)…"
+          echo "Waiting for service to stabilize (up to 15 min)…"
           aws ecs wait services-stable \
             --cluster "${{ env.ECS_CLUSTER }}" \
             --services "${{ env.ECS_SERVICE }}"
