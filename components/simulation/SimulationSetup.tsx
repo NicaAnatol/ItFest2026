@@ -283,25 +283,25 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
             {/* Quick Summary */}
             <Card className="mt-4">
               <CardHeader>
-                <CardTitle className="text-sm">Sumar Rapid</CardTitle>
+                <CardTitle className="text-sm">Quick Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">Total Patients:</span>
+                  <span className="text-muted-foreground">Total Patients:</span>
                   <span className="font-bold">{config.totalPatients}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">Interval:</span>
+                  <span className="text-muted-foreground">Interval:</span>
                   <span className="font-bold">{config.startTime} - {config.endTime}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-300">Departments:</span>
+                  <span className="text-muted-foreground">Departments:</span>
                   <span className="font-bold">{config.departmentCapacities.length}</span>
                 </div>
                 {totalSpecificPatients > 0 && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-300">Specific Conditions:</span>
-                    <span className="font-bold text-blue-600">{totalSpecificPatients}</span>
+                    <span className="text-muted-foreground">Specific Conditions:</span>
+                    <span className="font-bold text-primary">{totalSpecificPatients}</span>
                   </div>
                 )}
               </CardContent>
@@ -328,7 +328,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <Building2 className="h-8 w-8 text-blue-600" />
+                        <Building2 className="h-8 w-8 text-primary" />
                         <div>
                           <CardTitle>City Configuration</CardTitle>
                           <CardDescription>Configure the city and multiple hospitals</CardDescription>
@@ -1353,7 +1353,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                       <p className="text-xs text-muted-foreground mt-1">
                         Active floors: <span className="font-bold">{actualFloorCount}</span> / {maxFloors}
                         {highestOccupiedFloor < customFloorCount && (
-                          <span className="text-orange-600"> • Add departments on floor {highestOccupiedFloor + 1} to unlock the next one</span>
+                          <span className="text-orange-600 dark:text-orange-400"> • Add departments on floor {highestOccupiedFloor + 1} to unlock the next one</span>
                         )}
                       </p>
                     </div>
@@ -1493,10 +1493,10 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
 
                     <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm">
                       <div className="flex gap-2">
-                        <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+                        <Info className="h-4 w-4 text-primary mt-0.5" />
                         <div className="space-y-1">
                           <p className="font-semibold text-foreground">Adjust Hospital Structure</p>
-                          <p className="text-blue-700 dark:text-blue-200 text-xs">
+                          <p className="text-muted-foreground text-xs">
                             Structure modifications will generate a custom hospital. Individual capacities can be set in the tab "Departments".
                           </p>
                         </div>
@@ -1510,11 +1510,11 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
               <TabsContent value="patients" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Distribution Types Patients</CardTitle>
+                    <CardTitle>Patient Type Distribution</CardTitle>
                     <CardDescription>
                       Total: {totalPatientTypePercent}%
                       {totalPatientTypePercent !== 100 && (
-                        <span className="text-orange-500 ml-2">⚠️ Must be 100%</span>
+                        <span className="text-orange-500 dark:text-orange-400 ml-2">⚠️ Must be 100%</span>
                       )}
                     </CardDescription>
                   </CardHeader>
@@ -1551,7 +1551,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                     {/* Hospitalized */}
                     <div className="space-y-2">
                       <div className="flex justify-between">
-                        <Label>🏥 Internat</Label>
+                        <Label>🏥 Hospitalized</Label>
                         <span className="font-bold">{config.patientTypeDistribution?.hospitalized}%</span>
                       </div>
                       <Slider
@@ -1580,11 +1580,11 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Distribution Severity</CardTitle>
+                    <CardTitle>Severity Distribution</CardTitle>
                     <CardDescription>
                       Total: {totalSeverityPercent}%
                       {totalSeverityPercent !== 100 && (
-                        <span className="text-orange-500 ml-2">⚠️ Must be 100%</span>
+                        <span className="text-orange-500 dark:text-orange-400 ml-2">⚠️ Must be 100%</span>
                       )}
                     </CardDescription>
                   </CardHeader>
@@ -1593,9 +1593,9 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                       <div key={severity} className="space-y-2">
                         <div className="flex justify-between">
                           <Label>
-                            {severity === 'critical' && '🔴 Critic'}
-                            {severity === 'high' && '🟠 Ridicat'}
-                            {severity === 'medium' && '🟡 Mediu'}
+                            {severity === 'critical' && '🔴 Critical'}
+                            {severity === 'high' && '🟠 High'}
+                            {severity === 'medium' && '🟡 Medium'}
                             {severity === 'low' && '🟢 Low'}
                           </Label>
                           <span className="font-bold">{config.severityDistribution?.[severity]}%</span>
@@ -1616,14 +1616,14 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
               <TabsContent value="departments" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Capacities Departments</CardTitle>
+                    <CardTitle>Department Capacities</CardTitle>
                     <CardDescription>Configure capacity and processing time for each department</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4 max-h-[600px] overflow-y-auto">
                       {building.floors.map(floor => (
                         <div key={floor.id}>
-                          <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-200 mb-2">{floor.name}</h3>
+                          <h3 className="font-semibold text-sm text-muted-foreground mb-2">{floor.name}</h3>
                           <div className="space-y-3 ml-4">
                             {floor.departments.map(dept => {
                               const deptConfig = config.departmentCapacities.find(d => d.departmentId === dept.id);
@@ -1646,7 +1646,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                       />
                                     </div>
                                     <div>
-                                      <Label className="text-xs">Timp (minute)</Label>
+                                      <Label className="text-xs">Time (minutes)</Label>
                                       <Input
                                         type="number"
                                         value={deptConfig?.processingTimeMinutes || 30}
@@ -1676,8 +1676,8 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                     <CardDescription>
                       Force a specific number of patients with certain conditions
                       {totalSpecificPatients > 0 && (
-                        <span className="ml-2 text-blue-600 font-semibold">
-                          ({totalSpecificPatients} din {config.totalPatients} patients)
+                        <span className="ml-2 text-primary font-semibold">
+                          ({totalSpecificPatients} of {config.totalPatients} patients)
                         </span>
                       )}
                     </CardDescription>
@@ -1690,7 +1690,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                           <div key={idx} className="flex items-center justify-between border rounded-lg p-3">
                             <div className="flex-1">
                               <div className="font-medium">{condition.conditionName}</div>
-                              <div className="text-sm text-gray-600 dark:text-gray-300">{condition.patientCount} patients</div>
+                              <div className="text-sm text-muted-foreground">{condition.patientCount} patients</div>
                             </div>
                             <Button
                               variant="ghost"
@@ -1722,8 +1722,8 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                           >
                             <div className="text-left">
                               <div className="font-medium text-xs">{condition.name}</div>
-                              <div className="text-xs text-gray-500">
-                                {condition.mortalityRate}% mortalitate, +{condition.mortalityIncreasePerHour}%/h
+                              <div className="text-xs text-muted-foreground">
+                                {condition.mortalityRate}% mortality, +{condition.mortalityIncreasePerHour}%/h
                               </div>
                             </div>
                           </Button>
@@ -1738,14 +1738,14 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
               <TabsContent value="routing" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Filtre Routing Departments</CardTitle>
+                    <CardTitle>Department Routing Filters</CardTitle>
                     <CardDescription>Select departments that MUST be used in patient routes</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
                       {building.floors.map(floor => (
                         <div key={floor.id}>
-                          <h3 className="font-semibold text-sm text-gray-700 dark:text-gray-200 mb-2">{floor.name}</h3>
+                          <h3 className="font-semibold text-sm text-muted-foreground mb-2">{floor.name}</h3>
                           <div className="grid grid-cols-2 gap-2 ml-4">
                             {floor.departments.map(dept => {
                               const isFiltered = config.departmentFilters?.some(f => f.departmentId === dept.id);
@@ -1770,10 +1770,10 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                     {config.departmentFilters && config.departmentFilters.length > 0 && (
                       <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
                         <div className="flex items-start gap-2">
-                          <Info className="h-4 w-4 text-blue-600 mt-0.5" />
-                          <p className="text-sm text-blue-800 dark:text-blue-200">
+                          <Info className="h-4 w-4 text-primary mt-0.5" />
+                          <p className="text-sm text-muted-foreground">
                             Only patients with routes through these departments will be generated.
-                            Departments selectate: {config.departmentFilters.length}
+                            Selected departments: {config.departmentFilters.length}
                           </p>
                         </div>
                       </div>
@@ -1786,8 +1786,8 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
               <TabsContent value="advanced" className="space-y-4">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Devieri Random</CardTitle>
-                    <CardDescription>Add variabilitate pentru rezultate mai realiste</CardDescription>
+                    <CardTitle>Random Deviations</CardTitle>
+                    <CardDescription>Add variability for more realistic results</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
                     <div className="flex items-center justify-between">
@@ -1805,7 +1805,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                       <>
                         <div className="space-y-2">
                           <div className="flex justify-between">
-                            <Label>Schimbare Severity</Label>
+                            <Label>Severity Shift</Label>
                             <span className="font-bold">{(config.randomDeviation?.severityShift || 0) > 0 ? '+' : ''}{config.randomDeviation?.severityShift || 0}%</span>
                           </div>
                           <Slider
@@ -1818,12 +1818,12 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                             max={30}
                             step={5}
                           />
-                          <p className="text-xs text-gray-500">Negative = fewer severe cases | Positive = more severe cases</p>
+                          <p className="text-xs text-muted-foreground">Negative = fewer severe cases | Positive = more severe cases</p>
                         </div>
 
                         <div className="space-y-2">
                           <div className="flex justify-between">
-                            <Label>Multiplicator Mortalitate</Label>
+                            <Label>Mortality Multiplier</Label>
                             <span className="font-bold">{config.randomDeviation.mortalityMultiplier}x</span>
                           </div>
                           <Slider
@@ -1877,7 +1877,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                         max={3}
                         step={0.1}
                       />
-                      <p className="text-xs text-gray-500">More patients during hours 8:00-12:00</p>
+                      <p className="text-xs text-muted-foreground">More patients during hours 8:00-12:00</p>
                     </div>
 
                     <div className="flex items-center justify-between">
@@ -1913,14 +1913,14 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
             <Card className="mt-6">
               <CardContent className="pt-6">
                 <div className="flex justify-between items-center">
-                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                  <div className="text-sm text-muted-foreground">
                     {totalPatientTypePercent !== 100 || totalSeverityPercent !== 100 ? (
-                      <div className="flex items-center gap-2 text-orange-600">
+                      <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
                         <AlertCircle className="h-4 w-4" />
                         <span>Check distributions (must be 100%)</span>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-2 text-green-600">
+                      <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
                         <span>✓</span>
                         <span>Valid configuration</span>
                       </div>
