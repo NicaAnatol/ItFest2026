@@ -258,56 +258,6 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Sidebar - Presets */}
-          <div className="lg:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>Presets</CardTitle>
-                <CardDescription>Predefined templates</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {SIMULATION_PRESETS.map(preset => (
-                  <Button
-                    key={preset.name}
-                    variant={selectedPreset.name === preset.name ? 'default' : 'outline'}
-                    className="w-full justify-start"
-                    onClick={() => applyPreset(preset)}
-                  >
-                    <span className="mr-2">{preset.icon}</span>
-                    <span className="flex-1 text-left">{preset.name}</span>
-                  </Button>
-                ))}
-              </CardContent>
-            </Card>
-
-            {/* Quick Summary */}
-            <Card className="mt-4">
-              <CardHeader>
-                <CardTitle className="text-sm">Quick Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Patients:</span>
-                  <span className="font-bold">{config.totalPatients}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Interval:</span>
-                  <span className="font-bold">{config.startTime} - {config.endTime}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Departments:</span>
-                  <span className="font-bold">{config.departmentCapacities.length}</span>
-                </div>
-                {totalSpecificPatients > 0 && (
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Specific Conditions:</span>
-                    <span className="font-bold text-primary">{totalSpecificPatients}</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
           {/* Main Configuration */}
           <div className="lg:col-span-3">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -2021,6 +1971,56 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                     </Button>
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Sidebar - Presets */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>Presets</CardTitle>
+                <CardDescription>Predefined templates</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {SIMULATION_PRESETS.map(preset => (
+                  <Button
+                    key={preset.name}
+                    variant={selectedPreset.name === preset.name ? 'default' : 'outline'}
+                    className="w-full justify-start"
+                    onClick={() => applyPreset(preset)}
+                  >
+                    <span className="mr-2">{preset.icon}</span>
+                    <span className="flex-1 text-left">{preset.name}</span>
+                  </Button>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Quick Summary */}
+            <Card className="mt-4">
+              <CardHeader>
+                <CardTitle className="text-sm">Quick Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Patients:</span>
+                  <span className="font-bold">{config.totalPatients}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Interval:</span>
+                  <span className="font-bold">{config.startTime} - {config.endTime}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Departments:</span>
+                  <span className="font-bold">{config.departmentCapacities.length}</span>
+                </div>
+                {totalSpecificPatients > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Specific Conditions:</span>
+                    <span className="font-bold text-primary">{totalSpecificPatients}</span>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
