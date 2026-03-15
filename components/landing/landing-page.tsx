@@ -16,7 +16,6 @@ import {
   Graph,
   Brain,
   ShieldCheck,
-  TreeStructure,
   ChartLineUp,
   FirstAid,
   Users,
@@ -25,7 +24,6 @@ import {
   GithubLogo,
   Clock,
   Waveform,
-  Circuitry,
   MagnifyingGlass,
   Warning,
   List,
@@ -192,13 +190,9 @@ function LiveGraph({ onSelect }: { onSelect: (n: GNode | null) => void }) {
   const [hov, setHov] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [activeEdges, setActiveEdges] = useState<Set<number>>(new Set([0]));
-  const [mounted, setMounted] = useState(false);
   const tickRef = useRef(0);
 
-  useEffect(() => { setMounted(true); }, []);
-
   useEffect(() => {
-    if (!mounted) return;
     const iv = setInterval(() => {
       tickRef.current = (tickRef.current + 1) % EDGES.length;
       setActiveEdges(new Set([
@@ -209,7 +203,7 @@ function LiveGraph({ onSelect }: { onSelect: (n: GNode | null) => void }) {
       ]));
     }, 800);
     return () => clearInterval(iv);
-  }, [mounted]);
+  }, []);
 
   const activeNodeIds = new Set<string>();
   activeEdges.forEach((ei) => {
@@ -438,26 +432,29 @@ const AI_LINES = [
 function SimulatedAI() {
   const [lines, setLines] = useState<string[]>([]);
   const [ci, setCi] = useState(0);
-  const li = useRef(0);
+  const [li, setLi] = useState(0);
   const { ref, visible } = useInView();
 
   useEffect(() => {
     if (!visible) return;
-    if (li.current >= AI_LINES.length) {
-      const t = setTimeout(() => { setLines([]); setCi(0); li.current = 0; }, 3500);
+    if (li >= AI_LINES.length) {
+      const t = setTimeout(() => { setLines([]); setCi(0); setLi(0); }, 3500);
       return () => clearTimeout(t);
     }
-    const full = AI_LINES[li.current];
+    const full = AI_LINES[li];
     if (ci <= full.length) {
       const t = setTimeout(() => {
-        setLines((p) => { const c = [...p]; c[li.current] = full.slice(0, ci); return c; });
+        setLines((p) => { const c = [...p]; c[li] = full.slice(0, ci); return c; });
         setCi((c) => c + 1);
       }, ci === 0 ? 350 : 16);
       return () => clearTimeout(t);
     }
-    li.current += 1;
-    setCi(0);
-  }, [visible, ci, lines.length]);
+    const t = setTimeout(() => {
+      setLi((l) => l + 1);
+      setCi(0);
+    }, 0);
+    return () => clearTimeout(t);
+  }, [visible, ci, li, lines.length]);
 
   return (
     <div ref={ref} className="h-full rounded-lg border border-border/30 bg-background/90 p-3 font-mono text-[10px] leading-relaxed backdrop-blur-sm">
@@ -470,7 +467,7 @@ function SimulatedAI() {
         {lines.map((l, i) => (
           <div key={i} className={cn("text-muted-foreground", i === lines.length - 1 && "text-foreground")}>
             {l}
-            {i === li.current && <span className="animate-pulse text-primary">▌</span>}
+            {i === li && <span className="animate-pulse text-primary">▌</span>}
           </div>
         ))}
         {lines.length === 0 && <div className="text-muted-foreground/40">Waiting for input…</div>}
