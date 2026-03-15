@@ -269,7 +269,7 @@ function LiveGraph({ onSelect }: { onSelect: (n: GNode | null) => void }) {
               </text>
             )}
             <path id={`epath${i}`} d={d} fill="none" stroke="none" />
-            {mounted && isActive && (
+            {isActive && (
               <path d={d} fill="none" stroke="url(#ep)" strokeWidth="3" strokeDasharray="10 6"
                 className="animate-edge-draw" style={{ animationDuration: "0.8s" }} />
             )}
@@ -278,7 +278,7 @@ function LiveGraph({ onSelect }: { onSelect: (n: GNode | null) => void }) {
       })}
 
       {/* Traveling data dots */}
-      {mounted && Array.from(activeEdges).map((ei) => {
+      {Array.from(activeEdges).map((ei) => {
         const edge = EDGES[ei];
         const a = NODES[edge.from], b = NODES[edge.to];
         const d = curvePath(a.cx, a.cy, b.cx, b.cy);
