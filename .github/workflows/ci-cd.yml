@@ -246,6 +246,49 @@ jobs:
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "Resolved deploy image: ${IMAGE}"
 
+      - name: Pre-flight checks
+        run: |
+          SHA="${GITHUB_SHA::8}"
+          FAILED=0
+
+          echo "── 1. Verify image exists in ECR ─────────"
+          if aws ecr describe-images \
+               --repository-name "${{ env.ECR_REPOSITORY }}" \
+               --image-ids imageTag="${SHA}" \
+               --query 'imageDetails[0].imageTags' \
+               --output text 2>/dev/null; then
+            echo "✅ Image ${SHA} found in ${{ env.ECR_REPOSITORY }}"
+          else
+            echo "::error::❌ Image ${SHA} NOT found in ECR repo ${{ env.ECR_REPOSITORY }}"
+            FAILED=1
+          fi
+
+          echo ""
+          echo "── 2. Verify Secrets Manager secrets ─────"
+          for SECRET in medgraph/workos medgraph/ai medgraph/db medgraph/neo4j; do
+            if aws secretsmanager describe-secret --secret-id "$SECRET" \
+                 --query 'Name' --output text 2>/dev/null; then
+              echo "✅ $SECRET"
+            else
+              echo "::error::❌ Secret $SECRET not found — run .aws/setup-aws-secrets.sh"
+              FAILED=1
+            fi
+          done
+
+          echo ""
+          echo "── 3. Verify / create CloudWatch log group "
+          aws logs create-log-group \
+            --log-group-name "/ecs/medgraph-ai" 2>/dev/null \
+            && echo "✅ Created /ecs/medgraph-ai" \
+            || echo "✅ /ecs/medgraph-ai already exists"
+
+          echo ""
+          if [ "$FAILED" -ne 0 ]; then
+            echo "::error::Pre-flight checks failed — see errors above"
+            exit 1
+          fi
+          echo "All pre-flight checks passed ✅"
+
       - name: Update image in task definition
         id: render-task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
@@ -284,3 +327,70 @@ jobs:
             --cluster "${{ env.ECS_CLUSTER }}" \
             --services "${{ env.ECS_SERVICE }}"
           echo "Service is stable ✅"
+
+      - name: Diagnose deployment failure
+        if: failure()
+        run: |
+          echo "============================================"
+          echo "  DEPLOYMENT FAILED — Collecting diagnostics"
+          echo "============================================"
+
+          echo ""
+          echo "── Service events (last 10) ──────────────"
+          aws ecs describe-services \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}" \
+            --query 'services[0].events[:10].[createdAt,message]' \
+            --output table 2>/dev/null || true
+
+          echo ""
+          echo "── Stopped tasks ─────────────────────────"
+          TASK_ARNS=$(aws ecs list-tasks \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service-name "${{ env.ECS_SERVICE }}" \
+            --desired-status STOPPED \
+            --query 'taskArns[:3]' \
+            --output text 2>/dev/null || true)
+
+          if [ -n "$TASK_ARNS" ] && [ "$TASK_ARNS" != "None" ]; then
+            aws ecs describe-tasks \
+              --cluster "${{ env.ECS_CLUSTER }}" \
+              --tasks $TASK_ARNS \
+              --query 'tasks[].{taskArn:taskArn,lastStatus:lastStatus,stoppedReason:stoppedReason,stopCode:stopCode,containers:containers[].{name:name,exitCode:exitCode,reason:reason}}' \
+              --output json 2>/dev/null || true
+          else
+            echo "No stopped tasks found (they may have been cleaned up)"
+          fi
+
+          echo ""
+          echo "── CloudWatch logs (last 50 lines) ───────"
+          LOG_STREAM=$(aws logs describe-log-streams \
+            --log-group-name "/ecs/medgraph-ai" \
+            --order-by LastEventTime \
+            --descending \
+            --limit 1 \
+            --query 'logStreams[0].logStreamName' \
+            --output text 2>/dev/null || true)
+
+          if [ -n "$LOG_STREAM" ] && [ "$LOG_STREAM" != "None" ]; then
+            echo "Log stream: $LOG_STREAM"
+            aws logs get-log-events \
+              --log-group-name "/ecs/medgraph-ai" \
+              --log-stream-name "$LOG_STREAM" \
+              --limit 50 \
+              --query 'events[].message' \
+              --output text 2>/dev/null || true
+          else
+            echo "No log streams found — the container may have failed before writing any logs"
+            echo "(check that the CloudWatch log group /ecs/medgraph-ai exists)"
+          fi
+
+          echo ""
+          echo "============================================"
+          echo "  Common causes:"
+          echo "  1. Secrets Manager: secret not found or role has no access"
+          echo "  2. Image pull failure: image doesn't exist in ECR"
+          echo "  3. App crash: check the CloudWatch logs above"
+          echo "  4. Network: task can't reach internet (needs NAT gateway)"
+          echo "============================================"
+
