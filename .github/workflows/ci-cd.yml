@@ -15,6 +15,7 @@
 #   ECS_CLUSTER                — medgraph-ai
 #   ECS_SERVICE                — medgraph-ai-service-is5u7ylu
 #   ECS_CONTAINER_NAME         — medgraph-ai  (must match .aws/task-definition.json)
+#   TARGET_GROUP_ARN           — ALB target group that routes traffic to the service
 #
 # Required GitHub Variables (non-secret):
 #   (none — project key & org are in sonar-project.properties)
@@ -43,6 +44,7 @@ env:
   ECS_CLUSTER: medgraph-ai
   ECS_SERVICE: medgraph-ai-service-is5u7ylu
   ECS_CONTAINER_NAME: medgraph-ai
+  TARGET_GROUP_ARN: arn:aws:elasticloadbalancing:us-east-1:650080740856:targetgroup/medgraph-ai-tg/2ed7e3e805c7f4c8
 
 # ── Cancel in-progress runs on the same branch ─────────────────────────────
 concurrency:
@@ -252,11 +254,33 @@ jobs:
           container-name: ${{ env.ECS_CONTAINER_NAME }}
           image: ${{ steps.deploy-image.outputs.image }}
 
+      - name: Register new task definition
+        id: register-task-def
+        run: |
+          TASK_DEF_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "file://${{ steps.render-task-def.outputs.task-definition }}" \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)
+          echo "arn=${TASK_DEF_ARN}" >> "$GITHUB_OUTPUT"
+          echo "Registered task definition: ${TASK_DEF_ARN}"
+
       - name: Deploy to Amazon ECS
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v2
-        with:
-          task-definition: ${{ steps.render-task-def.outputs.task-definition }}
-          service: ${{ env.ECS_SERVICE }}
-          cluster: ${{ env.ECS_CLUSTER }}
-          wait-for-service-stability: true
-          wait-for-minutes: 10
+        run: |
+          aws ecs update-service \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --service "${{ env.ECS_SERVICE }}" \
+            --task-definition "${{ steps.register-task-def.outputs.arn }}" \
+            --load-balancers '[{"targetGroupArn":"${{ env.TARGET_GROUP_ARN }}","containerName":"${{ env.ECS_CONTAINER_NAME }}","containerPort":3000}]' \
+            --force-new-deployment \
+            --query 'service.deployments[0].{status:status,desired:desiredCount,running:runningCount}' \
+            --output table
+          echo "Deployment triggered ✅"
+
+      - name: Wait for service stability
+        timeout-minutes: 15
+        run: |
+          echo "Waiting for service to stabilize (up to 15 min)…"
+          aws ecs wait services-stable \
+            --cluster "${{ env.ECS_CLUSTER }}" \
+            --services "${{ env.ECS_SERVICE }}"
+          echo "Service is stable ✅"
