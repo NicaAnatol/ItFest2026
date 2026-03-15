@@ -24,6 +24,7 @@ import { CostBreakdownChart } from "@/components/execution/cost-breakdown";
 import { ExecutionTimeline } from "@/components/execution/execution-timeline";
 import { ResourcesPanel } from "@/components/execution/resources-panel";
 import { AiExplainButton } from "@/components/ai/ai-explain-button";
+import { FlagExplainDrawer } from "@/components/alerts/flag-explain-drawer";
 import {
   formatActionName,
   formatTimestamp,
@@ -206,17 +207,7 @@ export function NodeDetailSheet({ node, open, onOpenChange }: NodeDetailSheetPro
               {/* Flags Tab */}
               <TabsContent value="flags" className="mt-0 space-y-4">
                 <div className="flex justify-end">
-                  <AiExplainButton
-                    compact
-                    context={{
-                      node_id: node.node_id,
-                      sequence: node.sequence,
-                      action: node.decision.action,
-                      flags: node.historical_analysis.flags,
-                    }}
-                    question="Explain the AI flags raised for this decision — what risks were detected, what historical evidence supports them, and what should the clinical team do about each flag?"
-                    title={`AI — Flags at Node #${node.sequence}`}
-                  />
+                  <FlagExplainDrawer node={node} />
                 </div>
                 <FlagList flags={node.historical_analysis.flags} />
               </TabsContent>

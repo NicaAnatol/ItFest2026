@@ -27,6 +27,7 @@ import {
   formatDuration,
 } from "@/lib/utils/format";
 import { countFlagsBySeverity } from "@/lib/decision/decision-utils";
+import { FlagExplainDrawer } from "@/components/alerts/flag-explain-drawer";
 import {
   Ambulance,
   FirstAid,
@@ -169,6 +170,13 @@ function ClinicalNodeComponent({ data }: { data: ClinicalNodeData }) {
           </Badge>
         )}
       </div>
+
+      {/* Why Flagged — AI explanation */}
+      {(hasCritical || hasWarning) && (
+        <div className="mt-2">
+          <FlagExplainDrawer node={node} />
+        </div>
+      )}
     </div>
   );
 }

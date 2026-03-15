@@ -13,7 +13,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { OutcomeBadge } from "@/components/patient/outcome-badge";
 import { TriageBadge } from "@/components/patient/triage-badge";
 import { PatientGraphView } from "@/components/graph/patient-graph";
-import { InteractivePatientGraph } from "@/components/graph/interactive-graph";
 import { GraphTimeline } from "@/components/graph/graph-timeline";
 import { NodeDetailSheet } from "@/components/patient/node-detail-sheet";
 import { CostBreakdownChart } from "@/components/execution/cost-breakdown";
@@ -185,7 +184,7 @@ export default function PatientDetailPage() {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm">Interactive Patient Journey Graph</CardTitle>
+                <CardTitle className="text-sm">Patient Journey</CardTitle>
                 <AiExplainButton
                   context={{
                     patient_id: patient.patient_id,
@@ -209,23 +208,8 @@ export default function PatientDetailPage() {
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Click any node for details · Drag to rearrange · Scroll to zoom · Department swim lanes
+                Click any node for details · Continuous pathway flows left-to-right then right-to-left
               </p>
-            </CardHeader>
-            <CardContent>
-              <InteractivePatientGraph
-                nodes={patient.nodes}
-                edges={patient.edges}
-                selectedNodeId={selectedNode?.node_id}
-                onNodeClick={handleNodeClick}
-              />
-            </CardContent>
-          </Card>
-
-          {/* Linear fallback */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-xs text-muted-foreground">Linear View</CardTitle>
             </CardHeader>
             <CardContent>
               <PatientGraphView
@@ -267,12 +251,16 @@ export default function PatientDetailPage() {
                 />
               </div>
             </CardHeader>
-            <CardContent>
-              <GraphTimeline
-                nodes={patient.nodes}
-                selectedNodeId={selectedNode?.node_id}
-                onNodeClick={handleNodeClick}
-              />
+            <CardContent className="p-0">
+              <ScrollArea className="h-[calc(100vh-320px)] min-h-[400px]">
+                <div className="p-6 pt-0">
+                  <GraphTimeline
+                    nodes={patient.nodes}
+                    selectedNodeId={selectedNode?.node_id}
+                    onNodeClick={handleNodeClick}
+                  />
+                </div>
+              </ScrollArea>
             </CardContent>
           </Card>
         </TabsContent>

@@ -4,7 +4,7 @@ import {
   getMedGemmaAnalysis,
   isMedGemmaConfigured,
 } from "@/lib/ai/medgemma-client";
-import { MEDGEMMA_NODE_EXPLAIN } from "@/lib/ai/medgemma-prompts";
+import { MEDGEMMA_NODE_EXPLAIN, MEDGEMMA_FLAG_EXPLAIN } from "@/lib/ai/medgemma-prompts";
 
 
 // ─── Presentation prompt for OpenAI (phase 2) ───
@@ -27,6 +27,68 @@ Presentation rules:
 IMPORTANT: Do NOT say "according to the analysis" or reference MedGemma — present the information as your own authoritative explanation. The user should see a seamless, polished answer.
 
 Respond in English. Use markdown formatting (headers, bold, bullet points) for readability.`;
+
+// ─── Flag-specific presentation prompt for OpenAI (phase 2) ───
+
+const FLAG_PRESENTATION_PROMPT = `You are a senior clinical decision-support AI assistant embedded in a hospital intelligence platform called MedGraph AI.
+
+You receive a CLINICAL FLAG ANALYSIS produced by a specialist medical AI (MedGemma) that analyzed why specific AI flags were raised on a patient's clinical decision node. Your job is to PRESENT this analysis as a clear, actionable explanation for clinicians.
+
+Structure your response as follows:
+
+## 1. Why This Decision Was Flagged
+For EACH flag, explain in plain but medically accurate language:
+- **What triggered it:** The specific clinical values or conditions, AND how the chosen decision interacts with them to create risk.
+- **Decision context:** Why choosing THIS action (vs the alternatives) is what caused the flag. Would an alternative have been safer?
+- Use 🔴 for CRITICAL flags, ⚠️ for WARNING flags, ℹ️ for INFO flags.
+
+## 2. Evidence from Similar Patients
+- Cite the similar-case cohort: "Of **N** similar patients, **X%** healed, **Y%** had complications, **Z%** died."
+- Reference matched care patterns: "This follows the **[pattern name]** pathway (**X%** similarity) which has a **Y%** mortality rate."
+- If deadly patterns are matched, highlight them prominently.
+- Compare alternative treatment outcomes if data is available: "Patients who received **[alternative]** instead had **X%** mortality vs **Y%** for the chosen approach."
+
+## 3. Risk Chain & Interactions
+- Explain what specific patient factors (vitals, medications, age) combine with this decision to elevate risk.
+- Highlight any drug interactions or overlapping decision risks.
+
+## 4. Recommended Actions (Prioritized)
+- Numbered list, most urgent first. Be specific: drug names, doses, monitoring protocols, timing.
+
+IMPORTANT: Do NOT say "according to the analysis" or reference MedGemma. Present the information as your own authoritative clinical assessment. Always cite specific numbers from the data. Be direct and actionable.
+
+Respond in English. Use markdown formatting (headers, bold, bullet points) for readability.`;
+
+// ─── Fallback prompt for flags when MedGemma is unavailable ───
+
+const FLAG_FALLBACK_PROMPT = `You are a senior clinical decision-support AI assistant embedded in a hospital intelligence platform called MedGraph AI.
+
+Your role is to explain WHY specific clinical AI flags were raised on a patient's decision node. The system generates flags when it detects elevated risk, deadly pattern matches, drug interactions, or guideline deviations.
+
+The data you receive includes: the decision made (action, reasoning, alternatives with historical outcomes), the patient's clinical state, risk assessment, flags with evidence, similar-case cohort data, and matched clinical patterns.
+
+Structure your response as follows:
+
+## 1. Why This Decision Was Flagged
+For each flag:
+- Explain what clinical data triggered it AND how the chosen decision interacts with those conditions.
+- Would any of the considered alternatives have avoided this flag? Reference their historical outcome data.
+- Use 🔴 for CRITICAL, ⚠️ for WARNING, ℹ️ for INFO.
+
+## 2. Evidence from Similar Patients
+- "Of **N** similar patients, **X%** healed, **Y%** died."
+- Reference matched patterns with similarity scores and outcomes.
+- Compare alternative treatment outcomes from the data.
+- Highlight deadly patterns if present.
+
+## 3. Risk Chain & Interactions
+- What patient factors combine with this decision to elevate risk?
+- Drug interactions, overlapping decision risks.
+
+## 4. Recommended Actions (Prioritized)
+- Numbered, most urgent first. Specific drug names, doses, monitoring.
+
+Be medically precise but also understandable. Always cite specific numbers from the data. Use markdown formatting for readability.`;
 
 // ─── Fallback prompt when MedGemma is unavailable ───
 
@@ -77,16 +139,30 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // ── Detect flag-explain request ──
+    // Flag context includes 'deadly_patterns' and 'flags' as top-level keys
+    const isFlagExplain =
+      context &&
+      typeof context === "object" &&
+      "deadly_patterns" in context &&
+      "flags" in context &&
+      Array.isArray(context.flags);
+
     // ── Phase 1: MedGemma clinical analysis (non-streaming) ──
 
     let medGemmaAnalysis: string | null = null;
 
     if (isMedGemmaConfigured()) {
       try {
+        const medGemmaPrompt = isFlagExplain ? MEDGEMMA_FLAG_EXPLAIN : MEDGEMMA_NODE_EXPLAIN;
+        const medGemmaUserPrompt = isFlagExplain
+          ? `Analyze why this clinical node was flagged. Here is the full node data with flags, deadly patterns, and patient state:\n\n${JSON.stringify(context, null, 2)}\n\nClinical question: ${question}`
+          : `Analyze this patient graph data:\n\n${JSON.stringify(context, null, 2)}\n\nClinical question: ${question}`;
+
         medGemmaAnalysis = await getMedGemmaAnalysis({
-          systemPrompt: MEDGEMMA_NODE_EXPLAIN,
-          userPrompt: `Analyze this patient graph data:\n\n${JSON.stringify(context, null, 2)}\n\nClinical question: ${question}`,
-          maxTokens: 2048,
+          systemPrompt: medGemmaPrompt,
+          userPrompt: medGemmaUserPrompt,
+          maxTokens: isFlagExplain ? 3072 : 2048,
         });
       } catch (err) {
         console.warn("[explain] MedGemma unavailable, falling back to OpenAI-only:", err);
@@ -99,10 +175,10 @@ export async function POST(req: NextRequest) {
     let userContent: string;
 
     if (medGemmaAnalysis) {
-      systemPrompt = PRESENTATION_PROMPT;
+      systemPrompt = isFlagExplain ? FLAG_PRESENTATION_PROMPT : PRESENTATION_PROMPT;
       userContent = `Here is the clinical analysis from the specialist medical AI:\n\n---\n${medGemmaAnalysis}\n---\n\nOriginal clinical data context:\n\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\`\n\nOriginal question: ${question}\n\nPresent this analysis clearly and concisely for the clinician.`;
     } else {
-      systemPrompt = FALLBACK_PROMPT;
+      systemPrompt = isFlagExplain ? FLAG_FALLBACK_PROMPT : FALLBACK_PROMPT;
       userContent = `Here is the relevant data from the patient graph:\n\n\`\`\`json\n${JSON.stringify(context, null, 2)}\n\`\`\`\n\nQuestion: ${question}`;
     }
 
@@ -110,7 +186,7 @@ export async function POST(req: NextRequest) {
       model: "gpt-4o-mini",
       stream: true,
       temperature: 0.3,
-      max_tokens: 1024,
+      max_tokens: isFlagExplain ? 2048 : 1024,
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userContent },

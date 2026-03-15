@@ -13,6 +13,7 @@ import {
 } from "@/lib/utils/format";
 import { countFlagsBySeverity } from "@/lib/decision/decision-utils";
 import { AiExplainButton } from "@/components/ai/ai-explain-button";
+import { FlagExplainDrawer } from "@/components/alerts/flag-explain-drawer";
 import { buildNodeExplainContext, buildNodeExplainQuestion } from "@/lib/ai/explain-context";
 import {
   Ambulance,
@@ -59,7 +60,10 @@ export function GraphNode({ node, isSelected, onClick }: GraphNodeProps) {
   return (
     <div className="relative">
       {/* AI Explain — outside the tooltip/clickable area to avoid nested <button> */}
-      <div className="absolute -top-1 -right-1 z-10">
+      <div className="absolute -top-1 -right-1 z-10 flex items-center gap-0.5">
+        {hasFlags && (
+          <FlagExplainDrawer node={node} compact />
+        )}
         <AiExplainButton
           compact
           context={buildNodeExplainContext(node)}
@@ -144,6 +148,11 @@ export function GraphNode({ node, isSelected, onClick }: GraphNodeProps) {
                 Flags: {flagCounts.critical > 0 && <span className="text-red-500">{flagCounts.critical} critical</span>}
                 {flagCounts.warning > 0 && <span className="text-amber-500"> {flagCounts.warning} warning</span>}
                 {flagCounts.info > 0 && <span className="text-blue-500"> {flagCounts.info} info</span>}
+              </p>
+            )}
+            {hasFlags && (
+              <p className="text-[10px] text-primary italic">
+                Click the shield icon for AI explanation
               </p>
             )}
           </div>
