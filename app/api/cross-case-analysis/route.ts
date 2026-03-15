@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/ai/openai-client";
 import {
   getMedGemmaAnalysis,
   isMedGemmaConfigured,
 } from "@/lib/ai/medgemma-client";
 import { MEDGEMMA_CROSS_CASE } from "@/lib/ai/medgemma-prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // ─── Presentation prompt (phase 2 — OpenAI) ───
 
@@ -136,7 +133,7 @@ export async function POST(req: NextRequest) {
       )}\n\`\`\`\n\nProvide a clinical pathway analysis comparing this patient's decisions with similar cases. Identify patterns that lead to complications and patterns that protect against them.`;
     }
 
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       stream: true,
       temperature: 0.3,

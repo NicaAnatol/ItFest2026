@@ -1,14 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/ai/openai-client";
 import {
   getMedGemmaAnalysis,
   isMedGemmaConfigured,
 } from "@/lib/ai/medgemma-client";
 import { MEDGEMMA_OPTIMIZE } from "@/lib/ai/medgemma-prompts";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 // ─── Presentation prompt (phase 2 — OpenAI) ───
 
@@ -130,7 +127,7 @@ export async function POST(req: NextRequest) {
       userContent = `Analyze this patient's clinical pathway and generate an optimized alternative:\n\n\`\`\`json\n${JSON.stringify(patientContext, null, 2)}\n\`\`\``;
     }
 
-    const stream = await openai.chat.completions.create({
+    const stream = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       stream: true,
       temperature: 0.3,
