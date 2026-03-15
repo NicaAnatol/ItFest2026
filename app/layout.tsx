@@ -3,6 +3,7 @@ import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuthKitProvider } from "@workos-inc/authkit-nextjs/components"
+import { StaleDeploymentHandler } from "@/components/stale-deployment-handler";
 import { cn } from "@/lib/utils";
 
 const fontSans = Geist({
@@ -29,6 +30,7 @@ export default function RootLayout({
       className={cn("h-full overflow-hidden antialiased", fontSans.variable, "font-mono", jetbrainsMono.variable)}
     >
       <body suppressHydrationWarning className="h-full overflow-hidden">
+        <StaleDeploymentHandler />
         <ThemeProvider>
           <AuthKitProvider>
             <TooltipProvider delayDuration={300}>
