@@ -718,6 +718,24 @@ export function LandingPage({ signInUrl, signUpUrl }: LandingPageProps) {
 
       <Separator className="mx-auto max-w-6xl opacity-40" />
 
+      {/* ──── What is MedGraph AI? ──── */}
+      <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
+        <div className="flex flex-col items-center text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-6">
+            <Graph size={24} weight="bold" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">What is MedGraph AI?</h2>
+          <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-muted-foreground sm:text-base">
+            MedGraph AI models every patient&apos;s hospital journey as a directed graph where each node is a clinical
+            decision point. The system captures, analyzes, and visualizes the complete chain of medical decisions —
+            from admission through discharge — enabling doctors, auditors, and hospital administrators to understand
+            exactly what happened, why, and what could have been done differently.
+          </p>
+        </div>
+      </section>
+
+      <Separator className="mx-auto max-w-6xl opacity-40" />
+
       {/* ──── Features ──── */}
       <section id="features" className="mx-auto max-w-6xl px-4 py-20 sm:px-6">
         <div className="mb-12 text-center">
