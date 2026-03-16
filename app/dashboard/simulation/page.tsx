@@ -1861,8 +1861,15 @@ Current Time: ${currentTime} (${currentDay})
                 </div>
               </CardHeader>
               <CardContent>
-                {viewMode === 'city' ? (
-                  <IsometricCityView
+                <div
+                  onWheel={(e) => {
+                    // Prevent page scroll when zooming in simulation
+                    e.stopPropagation();
+                  }}
+                  className="relative"
+                >
+                  {viewMode === 'city' ? (
+                    <IsometricCityView
                     hospitals={cityHospitals}
                     selectedHospitalId={selectedHospitalId}
                     onHospitalClick={(hospitalId) => {
@@ -1896,6 +1903,7 @@ Current Time: ${currentTime} (${currentDay})
                     departmentOccupancies={departmentOccupancies}
                   />
                 )}
+                </div>
               </CardContent>
             </Card>
           </div>
