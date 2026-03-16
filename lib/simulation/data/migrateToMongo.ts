@@ -35,7 +35,7 @@ async function migrateSimulationData() {
               create: floor.departments.map((dept) => ({
                 name: dept.name,
                 type: dept.type,
-                capacity: dept.capacity,
+                capacity: dept.capacity ?? 1,
                 position: dept.position,
                 size: dept.size || { width: 100, height: 80 },
               })),

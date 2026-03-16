@@ -157,9 +157,9 @@ export async function saveSimulationBuilding(building: Building): Promise<boolea
               create: floor.departments.map((dept) => ({
                 name: dept.name,
                 type: dept.type,
-                capacity: dept.capacity,
+                capacity: dept.capacity ?? 1,
                 position: dept.position,
-                size: dept.size,
+                size: dept.size || { width: 100, height: 80 },
               })),
             },
           })),

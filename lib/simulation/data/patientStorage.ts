@@ -41,7 +41,7 @@ export async function saveGeneratedPatients(
       })
     );
 
-    const totalSaved = savedCount.reduce((sum, count) => sum + count, 0);
+    const totalSaved = savedCount.reduce((sum, count) => sum + count, 0 as number);
     console.log(`✅ Saved ${totalSaved}/${patients.length} patients to MongoDB`);
 
     return totalSaved === patients.length;

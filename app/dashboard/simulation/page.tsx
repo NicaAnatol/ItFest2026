@@ -541,7 +541,6 @@ export default function SimulationPage() {
             capacity: queueState?.capacity || 0,
             queueLength: queueState?.queue?.length || 0,
             isBlocked: queueState?.isBlocked || false,
-            totalVisits: queueState?.totalVisits || 0,
             totalDeaths: queueState?.totalDeaths || 0
           }];
         })
@@ -573,9 +572,9 @@ export default function SimulationPage() {
       zip.file('01-current-snapshot.csv', snapshotCsv);
 
       // 3. Department States CSV
-      let deptCsv = 'Department ID,Department Name,Type,Occupancy,Capacity,Queue Length,Blocked,Total Visits,Total Deaths\n';
+      let deptCsv = 'Department ID,Department Name,Type,Occupancy,Capacity,Queue Length,Blocked,Total Deaths\n';
       Object.entries(departmentStates).forEach(([id, dept]: [string, any]) => {
-        deptCsv += `${id},${dept.departmentName},${dept.departmentType},${dept.currentOccupancy},${dept.capacity},${dept.queueLength},${dept.isBlocked ? 'Yes' : 'No'},${dept.totalVisits},${dept.totalDeaths}\n`;
+        deptCsv += `${id},${dept.departmentName},${dept.departmentType},${dept.currentOccupancy},${dept.capacity},${dept.queueLength},${dept.isBlocked ? 'Yes' : 'No'},${dept.totalDeaths}\n`;
       });
       zip.file('02-department-states.csv', deptCsv);
 
@@ -791,7 +790,6 @@ Current Time: ${currentTime} (${currentDay})
             capacity: queueState?.capacity || 0,
             queueLength: queueState?.queue?.length || 0,
             isBlocked: queueState?.isBlocked || false,
-            totalVisits: queueState?.totalVisits || 0,
             totalDeaths: queueState?.totalDeaths || 0
           }];
         })

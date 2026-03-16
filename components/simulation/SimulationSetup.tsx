@@ -1999,7 +1999,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                   }))
                                 }));
 
-                              simulationBuilding = generateCustomBuilding(customFloors);
+                              simulationBuilding = generateCustomBuilding(customFloors, actualFloorCount);
                             } else {
                               simulationBuilding = getDefaultBuilding();
                             }
@@ -2116,7 +2116,7 @@ export default function SimulationSetup({ onStartSimulation, onCancel }: Simulat
                                   }))
                                 }));
 
-                              simulationBuilding = generateCustomBuilding(customFloors);
+                              simulationBuilding = generateCustomBuilding(customFloors, actualFloorCount);
                             } else {
                               simulationBuilding = getDefaultBuilding();
                             }
