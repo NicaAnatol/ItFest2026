@@ -17,45 +17,65 @@ import type { PatientGraph } from "@/lib/types/patient";
 
 // ─── READ ───
 
-/** Get all patients belonging to a specific medic. */
-export async function getAllPatients(medicId: string): Promise<PatientGraph[]> {
+/** Get all patients (globally - no medic filtering for simulation viewing). */
+export async function getAllPatients(medicId?: string): Promise<PatientGraph[]> {
   const session = getSession();
   try {
-    const result = await session.run(
-      `
-      MATCH (p:Patient)-[:OWNED_BY]->(m:MedicRef {medicId: $medicId})
-      RETURN p.patientId AS patientId, p.data AS data
-      ORDER BY p.createdAt DESC
-      `,
-      { medicId },
-    );
+    // If medicId is provided, filter by medic (for backwards compatibility)
+    // If not provided, return all patients globally
+    const query = medicId
+      ? `
+        MATCH (p:Patient)-[:OWNED_BY]->(m:MedicRef {medicId: $medicId})
+        RETURN p.patientId AS patientId, p.data AS data, p.medicId AS medicId
+        ORDER BY p.createdAt DESC
+        `
+      : `
+        MATCH (p:Patient)
+        RETURN p.patientId AS patientId, p.data AS data, p.medicId AS medicId
+        ORDER BY p.createdAt DESC
+        `;
+
+    const result = await session.run(query, medicId ? { medicId } : {});
+
     return result.records.map((r) => {
       const graph = JSON.parse(r.get("data") as string) as PatientGraph;
-      return { ...graph, medicId };
+      const recordMedicId = r.get("medicId") as string;
+      return { ...graph, medicId: recordMedicId };
     });
   } finally {
     await session.close();
   }
 }
 
-/** Get a single patient by patient_id — scoped to medic. */
+/** Get a single patient by patient_id (globally - optionally scoped to medic). */
 export async function getPatientById(
-  medicId: string,
+  medicId: string | null,
   patientId: string,
 ): Promise<PatientGraph | null> {
   const session = getSession();
   try {
+    // If medicId is null, search globally
+    const query = medicId
+      ? `
+        MATCH (p:Patient {patientId: $patientId})-[:OWNED_BY]->(m:MedicRef {medicId: $medicId})
+        RETURN p.data AS data, p.medicId AS medicId
+        LIMIT 1
+        `
+      : `
+        MATCH (p:Patient {patientId: $patientId})
+        RETURN p.data AS data, p.medicId AS medicId
+        LIMIT 1
+        `;
+
     const result = await session.run(
-      `
-      MATCH (p:Patient {patientId: $patientId})-[:OWNED_BY]->(m:MedicRef {medicId: $medicId})
-      RETURN p.data AS data
-      LIMIT 1
-      `,
-      { medicId, patientId },
+      query,
+      medicId ? { medicId, patientId } : { patientId },
     );
+
     if (result.records.length === 0) return null;
     const graph = JSON.parse(result.records[0].get("data") as string) as PatientGraph;
-    return { ...graph, medicId };
+    const recordMedicId = result.records[0].get("medicId") as string;
+    return { ...graph, medicId: recordMedicId };
   } finally {
     await session.close();
   }

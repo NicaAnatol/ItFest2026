@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMedic } from "@/lib/auth/get-current-medic";
 import { getAllPatients, upsertPatient } from "@/lib/db/patients";
 
-/** GET — list all patients for the authenticated medic */
-export async function GET() {
+/** GET — list all patients (globally accessible for simulation viewing) */
+export async function GET(request: NextRequest) {
   try {
-    const medic = await getCurrentMedic();
-    const patients = await getAllPatients(medic._id);
+    // Check if user wants their own patients or all patients
+    const { searchParams } = new URL(request.url);
+    const scope = searchParams.get('scope'); // 'own' or 'all'
+
+    let patients;
+    let medicId: string | undefined;
+
+    if (scope === 'own') {
+      // Get only authenticated user's patients
+      const medic = await getCurrentMedic();
+      medicId = medic._id;
+      patients = await getAllPatients(medicId);
+    } else {
+      // Get all patients globally (for simulation viewing)
+      patients = await getAllPatients();
+    }
 
     // Build lightweight metadata on-the-fly
     const healed = patients.filter((p) => p.final_outcome.status === "HEALED").length;
@@ -21,6 +35,7 @@ export async function GET() {
       schema: "patient-decision-graph",
       generated_at: new Date().toISOString(),
       total_patients: patients.length,
+      scope: scope === 'own' ? 'personal' : 'global',
       statistics: {
         total_patients: patients.length,
         outcomes: { healed, healed_with_complications: complicated, deceased },

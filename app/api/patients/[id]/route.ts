@@ -2,15 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMedic } from "@/lib/auth/get-current-medic";
 import { getPatientById, deletePatient } from "@/lib/db/patients";
 
-/** GET — get a single patient by ID (scoped to authenticated medic) */
+/** GET — get a single patient by ID (globally accessible with optional scope) */
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params;
-    const medic = await getCurrentMedic();
-    const patient = await getPatientById(medic._id, id);
+    const { searchParams } = new URL(req.url);
+    const scope = searchParams.get('scope'); // 'own' or 'all'
+
+    let patient;
+
+    if (scope === 'own') {
+      // Get only if it belongs to authenticated user
+      const medic = await getCurrentMedic();
+      patient = await getPatientById(medic._id, id);
+    } else {
+      // Get globally (for simulation viewing)
+      patient = await getPatientById(null, id);
+    }
 
     if (!patient) {
       return NextResponse.json({ error: "Patient not found" }, { status: 404 });
