@@ -76,9 +76,8 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Health check for ECS task health monitoring
-HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=5 \
-  CMD wget -qO- http://localhost:3000/api/health || exit 1
+# Note: Health check is managed by ECS task definition, not Docker HEALTHCHECK
+# This allows ECS to control retry behavior and monitoring
 
 CMD ["node", "server.js"]
 
