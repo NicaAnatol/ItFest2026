@@ -44,8 +44,8 @@ RUN npm run build
 FROM node:22-alpine AS runner
 WORKDIR /app
 
-# Install runtime dependencies (openssl for Prisma, curl for health checks)
-RUN apk add --no-cache openssl curl
+# Install runtime dependencies (openssl for Prisma, wget for health checks)
+RUN apk add --no-cache openssl wget
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
