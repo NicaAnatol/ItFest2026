@@ -57,9 +57,15 @@ RUN addgroup --system --gid 1001 nodejs && \
 # Copy the standalone server
 COPY --from=builder /app/.next/standalone ./
 
-# Copy static assets & public data (not included in standalone by default)
-COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/public        ./public
+# Copy static assets - MUST match Next.js build structure
+# The standalone server expects .next/static to be in the working directory
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+
+# Debug: List static files to verify they're copied
+RUN echo "=== Verifying static files ===" && \
+    ls -la .next/static/ && \
+    echo "=== Static chunks count: $(find .next/static/chunks -name '*.js' 2>/dev/null | wc -l) ===" || true
 
 # Copy Prisma engine binaries (needed at runtime by the binary engine)
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
