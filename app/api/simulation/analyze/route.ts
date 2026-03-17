@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Mark as dynamic to prevent build-time evaluation
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
+  // Lazy-load OpenAI client to avoid build-time evaluation
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
   try {
     const { simulationData, conversationHistory, followUpQuestion } = await request.json();
 
